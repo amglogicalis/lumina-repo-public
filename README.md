@@ -1,119 +1,207 @@
 <p align="center">
-  <img src="logo_lumina.png" alt="LUMINA Logo" width="220" />
+  <img src="assets/logo_lumina.png" alt="LUMINA Logo" width="220" />
 </p>
 
-<h1 align="center">🔐 LUMINA — Terra Ecosystem Identity & Auth Engine</h1>
+<h1 align="center">🔐 LUMINA — Terra Ecosystem Identity &amp; Auth Engine</h1>
 
 <p align="center">
-  <strong>Infraestructura de Autenticación Serverless, Políticas IAM Granulares, Magic Links y Broker Empresarial a Coste $0</strong>
+  <strong>Infraestructura de Autenticación Serverless, Sanctuaries (Entornos Aislados), Políticas IAM Granulares Estilo AWS, Magic Links y Broker Multicloud a Coste $0</strong>
 </p>
 
 <p align="center">
   <a href="#-visión-y-filosofía">Visión</a> •
-  <a href="#-nomenclatura-bioluminosa">Nomenclatura</a> •
-  <a href="#-instalación-y-uso">Instalación</a> •
+  <a href="#-demostración-visual-y-consola-web">Consola Web</a> •
+  <a href="#-sanctuaries-aislamiento-multi-entorno">Sanctuaries</a> •
+  <a href="#-nomenclatura-y-módulos-bioluminosos">Módulos</a> •
+  <a href="#-instalación-y-configuración">Instalación</a> •
+  <a href="#-ejemplos-prácticos-del-sdk">Ejemplos SDK</a> •
   <a href="#-referencia-completa-de-la-cli">CLI Reference</a> •
-  <a href="#-uso-del-sdk">SDK</a> •
-  <a href="#-puente-multicloud-coleoptera">Multicloud Bridge</a> •
-  <a href="#-licencia">Licencia MIT</a>
+  <a href="#-licencia">Licencia</a>
 </p>
 
 ---
 
 ## 🌐 Visión y Filosofía
 
-**LUMINA** es el titán de autenticación, gestión de identidades (IdP), políticas granulares (estilo AWS IAM) y Single Sign-On (SSO) del **Ecosistema Terra**, diseñado para operar a **$0 facturas recurrentes** sin necesidad de mantener servidores ni pagar licencias de Auth0, Clerk, Supabase Auth u Okta Enterprise.
+**LUMINA** es el motor central de identidad (IdP), control de acceso por roles (RBAC) y políticas granulares (ABAC estilo AWS IAM) del **Ecosistema Terra**. Ha sido concebido para eliminar por completo los costes recurrentes de plataformas como Auth0, Okta, Clerk o Supabase Auth.
 
-Toda la base de identidades se guarda de forma encriptada en tu repositorio privado **`.lumina-storage`** de GitHub.
-
----
-
-## 🪲 Nomenclatura Bioluminosa
-
-Inspirándonos en la fotobiología de las luciérnagas y coleópteros luminiscentes, cada módulo de **LUMINA** tiene una identidad única:
-
-- **💡 Luciole**: Motor Criptográfico JWT & Emisor JWKS (`lumina Luciole`). Firma RS256/Ed25519 con llaves públicas abiertas en `/.well-known/jwks.json` para verificación offline a $0 latencia.
-- **🪲 Pyralis**: Motor de Políticas Granulares Estilo AWS IAM (`lumina Pyralis`). Evaluador `Allow`/`Deny` con wildcards sobre recursos Terra (`arn:terra:...`) y nubes externas (`arn:aws:...`, `supabase:...`, `auth0:...`).
-- **LanternLinks 🏮**: Enlaces Mágicos Serverless & OTPs sin contraseñas (`lumina LanternLinks`).
-- **Glowworm ⚡**: Credenciales Efímeras de Emergencia Break-Glass de 15 minutos (`lumina Glowworm`).
-- **Photuris Vault 🌌**: Bóveda Inmutable de Usuarios en `.lumina-storage` (`lumina Photuris`).
-- **Coleoptera Bridge 🐝**: Broker Enterprise Active Directory / SAML 2.0 & Multicloud Bridge (`lumina Coleoptera`).
+Toda la base de identidades, políticas y sesiones se almacena de forma estructurada en tu propio repositorio privado **`.lumina-storage`** en GitHub, permitiendo una infraestructura de seguridad enterprise sin servidores y a coste cero.
 
 ---
 
-## 🖼️ Demostración Visual — LUMINA Studio
+## 🖼️ Demostración Visual y Consola Web
 
-Accede a la consola web oficial en directo 24/7:  
+Accede a la consola web oficial en vivo 24/7:  
 👉 **[https://amglogicalis.github.io/lumina-repo-public/](https://amglogicalis.github.io/lumina-repo-public/)**
 
+<p align="center">
+  <img src="assets/console_web_lumina_preview.png" alt="LUMINA Studio Web Console Preview" width="100%" style="border-radius: 12px; border: 1px solid rgba(252,154,10,0.2);" />
+</p>
+
 ---
 
-## 📦 Instalación y Uso
+## 🏛️ Sanctuaries — Aislamiento Multi-Entorno
 
-Instala el paquete unificado globalmente para acceder a la CLI y la Consola Web local desde cualquier directorio:
+**LUMINA** introduce el concepto de **Sanctuaries** (Santuarios), permitiendo aislar completamente usuarios, roles y políticas entre diferentes aplicaciones o entornos (por ejemplo `production`, `staging`, `app-billing`, `internal-tools`).
 
+- **Sanctuary `default`**: Creado automáticamente en la primera sesión para retrocompatibilidad instantánea.
+- **Aislamiento Total**: Los usuarios creados en un Sanctuary no existen en otros Santuarios.
+- **Gestión Completa**: Creación, cambio de contexto, renombrado y eliminación (con modales de confirmación con diseño *dark glassmorphic*).
+
+---
+
+## 🪲 Nomenclatura y Módulos Bioluminosos
+
+| Módulo | Concepto Tradicional | Descripción |
+| :--- | :--- | :--- |
+| **🏛️ Sanctuaries** | Multi-Tenancy / Environments | Aislamiento de identidades y políticas entre entornos (`production`, `staging`, etc.). |
+| **🌌 Photuris Vault** | User Directory & Database | Directorio inmutable de usuarios en `.lumina-storage` con soporte de múltiples roles (`roles: string[]`). |
+| **💡 Luciole Engine** | JWT & JWKS Signer | Motor criptográfico de firma HMAC-SHA256 y endpoint JWKS abierto para verificación offline sin latencia. |
+| **📋 Pyralis IAM** | AWS IAM Policy Evaluator | Evaluador `Allow`/`Deny` con soporte de wildcards (`*`) sobre recursos `arn:terra:...` o nubes externas. |
+| **🏮 LanternLinks** | Magic Links & OTP | Generación de enlaces mágicos sin contraseña con tokens únicos y protección anti-replay. |
+| **⚡ Glowworm** | Break-Glass Emergency Access | Emisión de credenciales super-admin temporales de 15 minutos con audit log automático. |
+| **🐝 Coleoptera Bridge** | Multicloud Identity Exporter | Broker de exportación hacia Auth0, Supabase Auth, AWS IAM y Firebase Auth. |
+
+---
+
+## 📦 Instalación y Configuración
+
+### 1. Instalación Global del Paquete `terra-lumina`
 ```bash
 npm install -g terra-lumina
 ```
 
-O ejecútalo directamente usando `npx`:
-
+### 2. Inicialización en tu Proyecto
 ```bash
-npx terra-lumina studio
-# o también:
+cd mi-proyecto
+npx lumina init
+```
+Esto creará el archivo `lumina.config.json`:
+```json
+{
+  "storageRepo": ".lumina-storage",
+  "branch": "main",
+  "issuer": "lumina.terra",
+  "sanct": "default"
+}
+```
+
+### 3. Abrir LUMINA Studio (Consola Web Local)
+```bash
 npx lumina studio
 ```
 
 ---
 
-## 🛠️ Referencia Completa de la CLI
+## 🛠️ Ejemplos Prácticos del SDK
 
-| Comando | Descripción |
-| :--- | :--- |
-| `npx lumina init` | Configura LUMINA en el proyecto y genera `lumina.config.json`. |
-| `npx lumina studio` | Abre la consola web local en `http://localhost:3720`. |
-| `npx lumina Luciole sign <user_id>` | Genera y firma un JWT de acceso con Luciole. |
-| `npx lumina Luciole verify <token>` | Verifica la firma y validez de un token JWT. |
-| `npx lumina Luciole jwks` | Muestra la clave pública JWKS en formato JSON. |
-| `npx lumina Pyralis eval <action> <res> [role]` | Evalúa permisos estilo AWS IAM sobre recursos Terra o AWS/Supabase. |
-| `npx lumina LanternLinks <email>` | Genera un Magic Link OTP sin contraseña. |
-| `npx lumina Glowworm <user_id> [motivo]` | Emite credenciales de emergencia de 15 min (Break-Glass admin). |
-| `npx lumina Photuris ls` | Lista todos los usuarios registrados en `.lumina-storage`. |
-| `npx lumina Photuris create <email> <nombre>` | Crea un nuevo usuario en la bóveda de identidades. |
-| `npx lumina Photuris delete <user_id>` | Elimina un usuario de la bóveda. |
-| `npx lumina Coleoptera export <provider>` | Exporta identidades a Auth0, Supabase Auth o AWS IAM. |
-
----
-
-## ⚡ Uso del SDK en Node.js / TypeScript
-
+### 1. Inicialización y Selección de Sanctuary
 ```typescript
 import { Lumina } from 'terra-lumina';
 
 const lumina = new Lumina({
   githubToken: process.env.GITHUB_TOKEN!,
-  storageRepo: '.lumina-storage'
+  storageRepo: '.lumina-storage',
+  sanct: 'production' // Conecta directamente al Sanct 'production'
 });
 
 await lumina.init();
-
-// 1. Crear un usuario en Photuris Vault
-const user = await lumina.createUser('adrian@terra.org', 'Adrián', 'admin');
-
-// 2. Firmar un JWT con Luciole
-const token = lumina.signToken({ sub: user.id, role: user.role });
-
-// 3. Evaluar política Pyralis IAM sobre un recurso Terra o AWS
-const evaluation = lumina.evaluatePolicy('combase:query', 'arn:terra:combase:prod_db/users', user.role);
-console.log(evaluation.allowed ? '✅ Permitido' : '❌ Denegado');
-
-// 4. Generar un Magic Link OTP
-const magic = lumina.createMagicLink('adrian@terra.org');
-console.log(`Magic URL: ${magic.url}`);
 ```
+
+### 2. Crear y Gestionar Usuarios Multi-Rol (Photuris Vault)
+```typescript
+// Crear usuario con roles múltiples
+const user = await lumina.createUser(
+  'maria@empresa.com',
+  'María García',
+  ['admin', 'developer']
+);
+
+// Editar parámetros de usuario existente
+await lumina.updateUser(user.id, {
+  name: 'María García-López',
+  roles: ['admin', 'lead-developer']
+});
+```
+
+### 3. Crear Políticas IAM Granulares y Evaluar Accesos (Pyralis IAM)
+```typescript
+// Crear una política estilo AWS IAM
+const policy = await lumina.createPolicy(
+  'combase-db-admin',
+  [
+    {
+      Effect: 'Allow',
+      Action: ['combase:read', 'combase:write', 'combase:query'],
+      Resource: 'arn:terra:combase:database_prod/*'
+    },
+    {
+      Effect: 'Deny',
+      Action: ['combase:dropDatabase'],
+      Resource: '*'
+    }
+  ],
+  'Permisos de administración de Combase DB'
+);
+
+// Evaluar permisos para un conjunto de roles
+const evalResult = await lumina.evaluateForRoles(
+  'combase:query',
+  'arn:terra:combase:database_prod/table_users',
+  ['admin']
+);
+
+console.log(evalResult.allowed ? '✅ ACCESO PERMITIDO' : '❌ DENIED');
+```
+
+### 4. Generar y Verificar Tokens Criptográficos (Luciole JWT)
+```typescript
+// Generar JWT con expiración de 1 hora
+const token = lumina.signToken({
+  sub: user.id,
+  email: user.email,
+  roles: user.roles
+}, 3600);
+
+// Verificar token
+const verification = lumina.verifyToken(token);
+if (verification.valid) {
+  console.log('Token válido para el usuario:', verification.payload.sub);
+}
+```
+
+### 5. Crear Magic Links OTP sin Contraseña (LanternLinks)
+```typescript
+const magic = lumina.createMagicLink('maria@empresa.com', 300); // 5 minutos de validez
+console.log('Enlace Mágico:', magic.url);
+```
+
+---
+
+## 🖥️ Referencia Completa de la CLI
+
+| Comando | Descripción |
+| :--- | :--- |
+| `lumina init` | Inicializa `lumina.config.json` en el directorio actual. |
+| `lumina studio` | Abre la consola web local en el navegador. |
+| `lumina sanct ls` | Lista todos los Sanctuaries y su número de usuarios. |
+| `lumina sanct create <nombre> [desc]` | Crea un nuevo Sanctuary aislado. |
+| `lumina sanct use <nombre>` | Cambia el Sanctuary activo para la CLI. |
+| `lumina sanct rename <viejo> <nuevo>` | Renombra un Sanctuary manteniendo sus identidades. |
+| `lumina sanct rm <nombre>` | Elimina un Sanctuary (salvo `default`). |
+| `lumina photuris ls` | Lista los usuarios del Sanctuary activo. |
+| `lumina photuris create <email> <nombre> [roles]` | Crea un usuario en el Sanctuary activo. |
+| `lumina photuris rm <user_id>` | Elimina un usuario por su ID. |
+| `lumina pyralis policy ls` | Lista las políticas IAM del Sanctuary activo. |
+| `lumina pyralis eval <action> <resource> [roles]` | Evalúa permisos estilo AWS IAM sobre un recurso. |
+| `lumina luciole sign <user_id> [roles]` | Genera y firma un JWT de acceso. |
+| `lumina luciole jwks` | Muestra la clave pública JWKS en formato JSON. |
+| `lumina lantern <email> [ttl]` | Genera un Magic Link sin contraseña. |
+| `lumina glowworm <user_id> <motivo>` | Emite credencial de emergencia de 15 minutos (Break-Glass). |
+| `lumina coleoptera export <provider>` | Exporta datos a Auth0, Supabase, AWS IAM o Firebase. |
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia **MIT** — Libre para uso personal y comercial.
+Este proyecto se distribuye bajo la Licencia **MIT** — Libre para uso personal y comercial en cualquier entorno.
