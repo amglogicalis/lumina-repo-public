@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LUMINA Studio — Identity & Auth Engine</title>
+  <link rel="icon" type="image/png" href="assets/logo_lumina.png">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +16,7 @@
   <div id="authOverlay" class="auth-overlay">
     <div class="auth-card">
       <div class="auth-header">
-        <div class="auth-icon">🔐</div>
+        <img src="assets/logo_lumina.png" alt="LUMINA" class="auth-logo" />
         <h2>LUMINA Studio</h2>
         <p>Servicio de Identidad, Autenticación y Políticas IAM del Ecosistema Terra</p>
       </div>
@@ -23,7 +24,7 @@
         <label for="patInput">GitHub Personal Access Token (PAT):</label>
         <input type="password" id="patInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
         <button id="btnConnect" class="btn-primary">Conectar a .lumina-storage</button>
-        <p class="auth-hint">🔒 Tus credenciales nunca salen de tu navegador. El token se guarda localmente de forma encriptada.</p>
+        <p class="auth-hint">🔒 Tus credenciales nunca salen de tu navegador.</p>
       </div>
     </div>
   </div>
@@ -33,9 +34,11 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
-        <span class="brand-icon">🔐</span>
-        <span class="brand-title">LUMINA</span>
-        <span class="brand-badge">v1.0.0</span>
+        <img src="assets/logo_lumina.png" alt="LUMINA" class="brand-logo" />
+        <div>
+          <div class="brand-title">LUMINA</div>
+          <div class="brand-badge">v1.0.0</div>
+        </div>
       </div>
 
       <nav class="nav-menu">
@@ -46,7 +49,7 @@
           <span class="nav-icon">💡</span> Luciole JWT & JWKS
         </button>
         <button class="nav-item" data-tab="pyralis">
-          <span class="nav-icon">🪲</span> Pyralis IAM Policies
+          <span class="nav-icon">📋</span> Pyralis IAM
         </button>
         <button class="nav-item" data-tab="lantern">
           <span class="nav-icon">🏮</span> LanternLinks OTP
@@ -70,7 +73,6 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Top Bar -->
       <header class="topbar">
         <div class="topbar-info">
           <h1 id="tabTitle">Photuris Directory & Vault</h1>
@@ -78,7 +80,7 @@
         </div>
       </header>
 
-      <!-- Tab Content: Photuris -->
+      <!-- Tab: Photuris -->
       <section id="tab-photuris" class="tab-panel active">
         <div class="action-bar">
           <button id="btnCreateUser" class="btn-primary">➕ Nuevo Usuario</button>
@@ -89,154 +91,266 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Email</th>
-                <th>Nombre</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>Fecha Creación</th>
-                <th>Acciones</th>
+                <th>ID</th><th>Email</th><th>Nombre</th>
+                <th>Rol</th><th>Estado</th><th>Creación</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody id="userTableBody">
-              <tr><td colspan="7" class="text-center text-muted">Cargando usuarios desde .lumina-storage...</td></tr>
+              <tr><td colspan="7" class="text-center text-muted">Conecta con tu token para ver los usuarios</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Tab Content: Luciole -->
+      <!-- Tab: Luciole -->
       <section id="tab-luciole" class="tab-panel">
         <div class="grid-2">
           <div class="glass-card">
             <h3>💡 Luciole JWT Generator & Signer</h3>
             <div class="form-group">
               <label>User ID (Subject):</label>
-              <input type="text" id="jwtSub" value="usr_demo_123" />
+              <input type="text" id="jwtSub" placeholder="usr_..." />
             </div>
             <div class="form-group">
               <label>User Role:</label>
-              <input type="text" id="jwtRole" value="admin" />
+              <input type="text" id="jwtRole" placeholder="admin / editor / viewer..." />
             </div>
             <div class="form-group">
               <label>Expiración (Segundos):</label>
-              <input type="number" id="jwtExp" value="3600" />
+              <input type="number" id="jwtExp" placeholder="3600" min="60" />
             </div>
             <button id="btnGenerateJwt" class="btn-primary">Generar & Firmar JWT</button>
-            <div class="code-preview" id="jwtOutput">Haga clic en Generar para emitir un token firmado por Luciole</div>
+            <div class="code-preview" id="jwtOutput"></div>
           </div>
 
           <div class="glass-card">
             <h3>🔑 JWKS Public Key Set</h3>
-            <p class="text-muted">Clave pública expuesta abiertamente para verificación de firma offline a 0ms de latencia.</p>
+            <p class="text-muted" style="margin-bottom:1rem;">Clave pública expuesta para verificación de firma offline a 0ms de latencia.</p>
             <button id="btnFetchJwks" class="btn-secondary">Cargar JWKS Public Keys</button>
-            <pre class="code-preview" id="jwksOutput">{ "keys": [] }</pre>
+            <pre class="code-preview" id="jwksOutput"></pre>
           </div>
         </div>
       </section>
 
-      <!-- Tab Content: Pyralis -->
+      <!-- Tab: Pyralis -->
       <section id="tab-pyralis" class="tab-panel">
-        <div class="glass-card">
-          <h3>🪲 Pyralis IAM Policy Evaluator (AWS IAM Compatible)</h3>
-          <p class="text-muted">Prueba la evaluación explícita de permisos Allow/Deny sobre recursos de Terra y nubes externas.</p>
-          
+        <!-- Sub-tabs -->
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-subtab="pyralis-eval">📋 Evaluar Acceso</button>
+          <button class="sub-tab" data-subtab="pyralis-policies">📄 Políticas</button>
+          <button class="sub-tab" data-subtab="pyralis-roles">🎭 Roles</button>
+        </div>
+
+        <!-- Sub-tab: Evaluate -->
+        <div id="pyralis-eval" class="sub-panel active glass-card">
+          <h3>📋 Pyralis — Evaluador de Acceso IAM</h3>
+          <p class="text-muted" style="margin-bottom:1rem;">Evalúa Allow/Deny sobre recursos Terra (<code>arn:terra:...</code>) y nubes externas (<code>arn:aws:...</code>, <code>supabase:...</code>).</p>
           <div class="grid-3">
             <div class="form-group">
-              <label>Action (ej. combase:query, rolla:upload):</label>
-              <input type="text" id="iamAction" value="combase:query" />
+              <label>Action:</label>
+              <input type="text" id="iamAction" placeholder="combase:query" />
             </div>
             <div class="form-group">
-              <label>Resource (ARN o URI):</label>
-              <input type="text" id="iamResource" value="arn:terra:combase:prod_db/users" />
+              <label>Resource (ARN):</label>
+              <input type="text" id="iamResource" placeholder="arn:terra:combase:db/users" />
             </div>
             <div class="form-group">
-              <label>User Role:</label>
-              <input type="text" id="iamRole" value="admin" />
+              <label>Role o Usuario:</label>
+              <input type="text" id="iamRole" placeholder="admin" />
             </div>
           </div>
-          <button id="btnEvalIam" class="btn-primary">Evaluar Política Pyralis</button>
-          
+          <button id="btnEvalIam" class="btn-primary">Evaluar Política</button>
           <div id="iamResult" class="result-box hidden">
             <span class="result-badge" id="iamResultBadge">ALLOW</span>
-            <span id="iamResultReason">Permitido por política de administrador</span>
+            <span id="iamResultReason"></span>
+          </div>
+        </div>
+
+        <!-- Sub-tab: Policies -->
+        <div id="pyralis-policies" class="sub-panel hidden glass-card">
+          <div class="action-bar" style="margin-bottom:1rem;">
+            <h3>📄 Políticas</h3>
+            <span class="spacer"></span>
+            <button id="btnNewPolicy" class="btn-primary">➕ Nueva Política</button>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr><th>ID</th><th>Nombre</th><th>Provider</th><th>Statements</th><th>Creada</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="policyTableBody">
+                <tr><td colspan="6" class="text-center text-muted">No hay políticas creadas</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sub-tab: Roles -->
+        <div id="pyralis-roles" class="sub-panel hidden glass-card">
+          <div class="action-bar" style="margin-bottom:1rem;">
+            <h3>🎭 Roles</h3>
+            <span class="spacer"></span>
+            <button id="btnNewRole" class="btn-primary">➕ Nuevo Rol</button>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr><th>ID</th><th>Nombre</th><th>Provider</th><th>Políticas</th><th>Creado</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="roleTableBody">
+                <tr><td colspan="6" class="text-center text-muted">No hay roles creados</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- Tab Content: LanternLinks -->
+      <!-- Tab: LanternLinks -->
       <section id="tab-lantern" class="tab-panel">
         <div class="glass-card">
           <h3>🏮 LanternLinks Serverless Magic Links</h3>
+          <p class="text-muted" style="margin-bottom:1rem;">Genera un enlace de acceso único y un OTP con caducidad automática (anti-replay).</p>
           <div class="form-group">
-            <label>Email de Usuario:</label>
-            <input type="email" id="magicEmail" value="user@terra.org" />
+            <label>Email del usuario:</label>
+            <input type="email" id="magicEmail" placeholder="usuario@empresa.com" />
           </div>
-          <button id="btnCreateMagic" class="btn-primary">Generar Magic Link OTP</button>
-          <div class="code-preview" id="magicOutput">Resultados del token OTP...</div>
+          <div class="form-group">
+            <label>TTL (segundos, default 300):</label>
+            <input type="number" id="magicTtl" placeholder="300" min="60" max="3600" />
+          </div>
+          <button id="btnCreateMagic" class="btn-primary">🏮 Generar Magic Link</button>
+          <div class="code-preview" id="magicOutput"></div>
         </div>
       </section>
 
-      <!-- Tab Content: Glowworm -->
+      <!-- Tab: Glowworm -->
       <section id="tab-glowworm" class="tab-panel">
         <div class="glass-card">
           <h3>⚡ Glowworm Break-Glass Emergency Credentials</h3>
-          <p class="text-muted">Emitir credencial temporal de super-administrador (15 min) para emergencias.</p>
+          <p class="text-muted" style="margin-bottom:1rem;">Emite un token de super-administrador efímero de 15 minutos. Se registra en el audit log de .lumina-storage.</p>
           <div class="form-group">
-            <label>ID de Usuario Beneficiario:</label>
-            <input type="text" id="gwUser" value="usr_admin_oncall" />
+            <label>ID del usuario beneficiario:</label>
+            <input type="text" id="gwUser" placeholder="usr_..." />
           </div>
           <div class="form-group">
-            <label>Motivo de la Emergencia:</label>
-            <input type="text" id="gwReason" value="Incidente crítico en producción — Reparación directa" />
+            <label>Motivo de la emergencia:</label>
+            <input type="text" id="gwReason" placeholder="Describe el incidente..." />
           </div>
           <button id="btnIssueGw" class="btn-primary btn-danger">⚡ Emitir Token Break-Glass (15 min)</button>
-          <div class="code-preview" id="gwOutput">Los tokens de emergencia se registrarán en .lumina-storage...</div>
+          <div class="code-preview" id="gwOutput"></div>
         </div>
       </section>
 
-      <!-- Tab Content: Coleoptera -->
+      <!-- Tab: Coleoptera -->
       <section id="tab-coleoptera" class="tab-panel">
         <div class="glass-card">
-          <h3>🐝 Coleoptera Active Directory & Provider Bridge Exporter</h3>
+          <h3>🐝 Coleoptera Enterprise AD & Provider Bridge</h3>
+          <p class="text-muted" style="margin-bottom:1rem;">Exporta el directorio de identidades al formato del proveedor seleccionado.</p>
           <div class="form-group">
-            <label>Proveedor Destino:</label>
+            <label>Proveedor destino:</label>
             <select id="bridgeProvider">
-              <option value="auth0">Auth0 JSON Format</option>
-              <option value="supabase">Supabase Auth SQL Dump</option>
-              <option value="aws_iam">AWS IAM JSON Policy</option>
+              <option value="auth0">Auth0 — JSON Format</option>
+              <option value="supabase">Supabase Auth — SQL Dump</option>
+              <option value="aws_iam">AWS IAM — JSON Policy</option>
             </select>
           </div>
-          <button id="btnExportBridge" class="btn-primary">Exportar Datos de Identidad</button>
-          <pre class="code-preview" id="bridgeOutput">// Selecciona un proveedor y haz clic en Exportar</pre>
+          <button id="btnExportBridge" class="btn-primary">🐝 Exportar Identidades</button>
+          <pre class="code-preview" id="bridgeOutput"></pre>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- Create User Modal -->
+  <!-- Modal: Create User -->
   <div id="modalUser" class="modal">
     <div class="modal-card">
-      <h3>➕ Crear Nuevo Usuario en Photuris</h3>
+      <h3>➕ Crear Usuario en Photuris Vault</h3>
       <div class="form-group">
         <label>Email:</label>
-        <input type="email" id="newUserEmail" placeholder="usuario@terra.org" />
+        <input type="email" id="newUserEmail" placeholder="email@empresa.com" />
       </div>
       <div class="form-group">
-        <label>Nombre:</label>
-        <input type="text" id="newUserName" placeholder="Nombre completo" />
+        <label>Nombre completo:</label>
+        <input type="text" id="newUserName" placeholder="Nombre Apellido" />
       </div>
       <div class="form-group">
-        <label>Rol:</label>
+        <label>Rol inicial:</label>
         <select id="newUserRole">
+          <option value="viewer">Viewer</option>
+          <option value="editor">Editor</option>
           <option value="user">User</option>
           <option value="admin">Admin</option>
-          <option value="editor">Editor</option>
         </select>
       </div>
       <div class="modal-actions">
         <button id="btnCancelUser" class="btn-secondary">Cancelar</button>
         <button id="btnSaveUser" class="btn-primary">Guardar Usuario</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create Policy -->
+  <div id="modalPolicy" class="modal">
+    <div class="modal-card">
+      <h3>📋 Nueva Política Pyralis</h3>
+      <div class="form-group">
+        <label>Nombre de la política:</label>
+        <input type="text" id="newPolicyName" placeholder="CombaseReadOnly, RollaFullAccess..." />
+      </div>
+      <div class="form-group">
+        <label>Descripción (opcional):</label>
+        <input type="text" id="newPolicyDesc" placeholder="Descripción breve..." />
+      </div>
+      <div class="form-group">
+        <label>Proveedor:</label>
+        <select id="newPolicyProvider">
+          <option value="terra">Terra</option>
+          <option value="aws">AWS</option>
+          <option value="auth0">Auth0</option>
+          <option value="supabase">Supabase</option>
+          <option value="azure_ad">Azure AD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Statements JSON (array de { Effect, Action, Resource }):</label>
+        <textarea id="newPolicyStatements" rows="5" placeholder='[{"Effect":"Allow","Action":"combase:*","Resource":"arn:terra:combase:*"}]'></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="btnCancelPolicy" class="btn-secondary">Cancelar</button>
+        <button id="btnSavePolicy" class="btn-primary">Guardar Política</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create Role -->
+  <div id="modalRole" class="modal">
+    <div class="modal-card">
+      <h3>🎭 Nuevo Rol Pyralis</h3>
+      <div class="form-group">
+        <label>Nombre del rol:</label>
+        <input type="text" id="newRoleName" placeholder="developer, readonly-analyst..." />
+      </div>
+      <div class="form-group">
+        <label>Descripción (opcional):</label>
+        <input type="text" id="newRoleDesc" placeholder="Descripción del rol..." />
+      </div>
+      <div class="form-group">
+        <label>Proveedor:</label>
+        <select id="newRoleProvider">
+          <option value="terra">Terra</option>
+          <option value="aws">AWS</option>
+          <option value="auth0">Auth0</option>
+          <option value="supabase">Supabase</option>
+          <option value="azure_ad">Azure AD</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>IDs de políticas a asignar (separadas por coma):</label>
+        <input type="text" id="newRolePolicies" placeholder="pol_123,pol_456..." />
+      </div>
+      <div class="modal-actions">
+        <button id="btnCancelRole" class="btn-secondary">Cancelar</button>
+        <button id="btnSaveRole" class="btn-primary">Guardar Rol</button>
       </div>
     </div>
   </div>
