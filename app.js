@@ -1,11 +1,33 @@
-// LUMINA Studio — Client Application
+// LUMINA Studio v1.1.0 — Client Application
 
 class LuminaStudio {
   constructor() {
     this.token = localStorage.getItem('lumina_pat') || '';
     this.storageRepo = '.lumina-storage';
     this.currentUser = null;
-    this.state = { version: '1.0.0', users: {}, policies: {}, roles: {}, groupMappings: {}, activeSessions: {} };
+    this.state = {
+      version: '1.1.0',
+      activeSanct: 'default',
+      sancts: {
+        default: {
+          sanctId: 'sanct_default',
+          name: 'default',
+          description: 'Entorno por defecto',
+          createdAt: new Date().toISOString(),
+          users: {},
+          policies: {},
+          roles: {},
+          groupMappings: {},
+          activeSessions: {},
+          glowwormLogs: []
+        }
+      },
+      users: {},
+      policies: {},
+      roles: {},
+      groupMappings: {},
+      activeSessions: {}
+    };
 
     this.initDOM();
     this.bindEvents();
@@ -14,26 +36,57 @@ class LuminaStudio {
 
   // ─── DOM References ─────────────────────────────────────────────────────────
   initDOM() {
-    this.authOverlay    = document.getElementById('authOverlay');
-    this.patInput       = document.getElementById('patInput');
-    this.btnConnect     = document.getElementById('btnConnect');
-    this.btnDisconnect  = document.getElementById('btnDisconnect');
-    this.connStatus     = document.getElementById('connStatus');
-    this.userTableBody  = document.getElementById('userTableBody');
-    this.userCount      = document.getElementById('userCount');
+    this.authOverlay     = document.getElementById('authOverlay');
+    this.patInput        = document.getElementById('patInput');
+    this.btnConnect      = document.getElementById('btnConnect');
+    this.btnDisconnect   = document.getElementById('btnDisconnect');
+    this.connStatus      = document.getElementById('connStatus');
+    this.sanctSelect     = document.getElementById('sanctSelect');
+    this.btnNewSanct     = document.getElementById('btnNewSanct');
+    this.btnDeleteSanct  = document.getElementById('btnDeleteSanct');
+    this.userTableBody   = document.getElementById('userTableBody');
+    this.userCount       = document.getElementById('userCount');
     this.policyTableBody = document.getElementById('policyTableBody');
-    this.roleTableBody  = document.getElementById('roleTableBody');
-    this.tabTitle       = document.getElementById('tabTitle');
-    this.tabDesc        = document.getElementById('tabDesc');
-    this.navItems       = document.querySelectorAll('.nav-item');
-    this.tabPanels      = document.querySelectorAll('.tab-panel');
-    this.subTabs        = document.querySelectorAll('.sub-tab');
-    this.subPanels      = document.querySelectorAll('.sub-panel');
-    this.modals         = {
+    this.roleTableBody   = document.getElementById('roleTableBody');
+    this.tabTitle        = document.getElementById('tabTitle');
+    this.tabDesc         = document.getElementById('tabDesc');
+    this.navItems        = document.querySelectorAll('.nav-item');
+    this.tabPanels       = document.querySelectorAll('.tab-panel');
+    this.subTabs         = document.querySelectorAll('.sub-tab');
+    this.subPanels       = document.querySelectorAll('.sub-panel');
+    this.modals          = {
       user:   document.getElementById('modalUser'),
       policy: document.getElementById('modalPolicy'),
       role:   document.getElementById('modalRole'),
+      sanct:  document.getElementById('modalSanct'),
     };
+  }
+
+  // ─── Current Active Sanct Helper ─────────────────────────────────────────────
+  getActiveSanctData() {
+    const sanctName = this.state.activeSanct || 'default';
+    if (!this.state.sancts) this.state.sancts = {};
+    if (!this.state.sancts[sanctName]) {
+      this.state.sancts[sanctName] = {
+        sanctId: `sanct_${Date.now()}`,
+        name: sanctName,
+        createdAt: new Date().toISOString(),
+        users: this.state.users || {},
+        policies: this.state.policies || {},
+        roles: this.state.roles || {},
+        groupMappings: {},
+        activeSessions: {},
+        glowwormLogs: []
+      };
+    }
+    return this.state.sancts[sanctName];
+  }
+
+  syncLegacyTopLevelState() {
+    const s = this.getActiveSanctData();
+    this.state.users = s.users;
+    this.state.policies = s.policies;
+    this.state.roles = s.roles;
   }
 
   // ─── Event Binding ───────────────────────────────────────────────────────────
@@ -46,7 +99,7 @@ class LuminaStudio {
       this.connect();
     });
 
-    document.getElementById('patInput').addEventListener('keydown', (e) => {
+    this.patInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.btnConnect.click();
     });
 
@@ -56,6 +109,19 @@ class LuminaStudio {
       this.authOverlay.classList.remove('hidden');
     });
 
+    // Sanct selector change
+    this.sanctSelect.addEventListener('change', (e) => {
+      this.state.activeSanct = e.target.value;
+      this.syncLegacyTopLevelState();
+      this.renderAll();
+      this.toast(`Sanctuary cambiado a '${this.state.activeSanct}'`);
+    });
+
+    this.btnNewSanct.addEventListener('click', () => this.openModal('sanct'));
+    this.btnDeleteSanct.addEventListener('click', () => this.handleDeleteSanct());
+    document.getElementById('btnCancelSanct').addEventListener('click', () => this.closeModal('sanct'));
+    document.getElementById('btnSaveSanct').addEventListener('click', () => this.handleSaveSanct());
+
     // Main tabs
     this.navItems.forEach(item => item.addEventListener('click', () => this.switchTab(item.dataset.tab)));
 
@@ -63,7 +129,7 @@ class LuminaStudio {
     this.subTabs.forEach(tab => tab.addEventListener('click', () => this.switchSubTab(tab.dataset.subtab)));
 
     // Photuris
-    document.getElementById('btnCreateUser').addEventListener('click', () => this.openModal('user'));
+    document.getElementById('btnCreateUser').addEventListener('click', () => this.openUserModal());
     document.getElementById('btnCancelUser').addEventListener('click', () => this.closeModal('user'));
     document.getElementById('btnSaveUser').addEventListener('click', () => this.handleSaveUser());
 
@@ -73,10 +139,10 @@ class LuminaStudio {
 
     // Pyralis
     document.getElementById('btnEvalIam').addEventListener('click', () => this.handleEvalIam());
-    document.getElementById('btnNewPolicy').addEventListener('click', () => this.openModal('policy'));
+    document.getElementById('btnNewPolicy').addEventListener('click', () => this.openPolicyModal());
     document.getElementById('btnCancelPolicy').addEventListener('click', () => this.closeModal('policy'));
     document.getElementById('btnSavePolicy').addEventListener('click', () => this.handleSavePolicy());
-    document.getElementById('btnNewRole').addEventListener('click', () => this.openModal('role'));
+    document.getElementById('btnNewRole').addEventListener('click', () => this.openRoleModal());
     document.getElementById('btnCancelRole').addEventListener('click', () => this.closeModal('role'));
     document.getElementById('btnSaveRole').addEventListener('click', () => this.handleSaveRole());
 
@@ -91,10 +157,10 @@ class LuminaStudio {
 
     // Close modals on backdrop click / ESC
     Object.values(this.modals).forEach(modal => {
-      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+      if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') Object.values(this.modals).forEach(m => m.classList.remove('active'));
+      if (e.key === 'Escape') Object.values(this.modals).forEach(m => m?.classList.remove('active'));
     });
   }
 
@@ -103,12 +169,12 @@ class LuminaStudio {
     this.navItems.forEach(i => i.classList.toggle('active', i.dataset.tab === tabId));
     this.tabPanels.forEach(p => p.classList.toggle('active', p.id === `tab-${tabId}`));
     const meta = {
-      photuris:   { title: '🌌 Photuris Directory & Vault', desc: 'Gestión inmutable de usuarios e identidades en .lumina-storage' },
+      photuris:   { title: '🌌 Photuris Directory & Vault', desc: `Gestión de usuarios e identidades en Sanctuary '${this.state.activeSanct}'` },
       luciole:    { title: '💡 Luciole JWT & JWKS Engine', desc: 'Firma y verificación de tokens criptográficos a latencia cero' },
-      pyralis:    { title: '📋 Pyralis IAM — Políticas y Roles', desc: 'Creación de políticas y roles compatibles con Terra, AWS, Auth0, Azure AD y Supabase' },
+      pyralis:    { title: '📋 Pyralis IAM — Políticas y Roles', desc: `Políticas y roles en Sanctuary '${this.state.activeSanct}'` },
       lantern:    { title: '🏮 LanternLinks Magic Links', desc: 'Generación de accesos únicos sin contraseñas con protección anti-replay' },
       glowworm:   { title: '⚡ Glowworm Break-Glass', desc: 'Tokens efímeros de super-administrador de 15 minutos con audit log' },
-      coleoptera: { title: '🐝 Coleoptera Enterprise Bridge', desc: 'Exportador multi-proveedor: Auth0, Supabase, AWS IAM' },
+      coleoptera: { title: '🐝 Coleoptera Enterprise Bridge', desc: 'Exportador multi-proveedor: Auth0, Supabase, AWS IAM, Firebase' },
     };
     if (meta[tabId]) {
       this.tabTitle.textContent = meta[tabId].title;
@@ -155,15 +221,35 @@ class LuminaStudio {
         const file = await res.json();
         const content = atob(file.content.replace(/\s/g, ''));
         const parsed = JSON.parse(content);
+
+        // Bootstrap sancts if missing
+        if (!parsed.sancts) {
+          parsed.sancts = {
+            default: {
+              sanctId: 'sanct_default',
+              name: 'default',
+              description: 'Entorno por defecto',
+              createdAt: new Date().toISOString(),
+              users: parsed.users || {},
+              policies: parsed.policies || {},
+              roles: parsed.roles || {},
+              groupMappings: {},
+              activeSessions: {},
+              glowwormLogs: []
+            }
+          };
+          parsed.activeSanct = 'default';
+        }
+
         this.state = { ...this.state, ...parsed };
-        if (!this.state.roles) this.state.roles = {};
       }
     } catch (err) {
       console.info('Vault is empty or does not exist yet.');
     }
-    this.renderUsers();
-    this.renderPolicies();
-    this.renderRoles();
+
+    this.syncLegacyTopLevelState();
+    this.renderSanctSelector();
+    this.renderAll();
   }
 
   async persistVaultState(message) {
@@ -190,53 +276,189 @@ class LuminaStudio {
     } catch (e) { console.warn('Vault persist error:', e.message); }
   }
 
+  renderAll() {
+    this.renderSanctSelector();
+    this.renderUsers();
+    this.renderPolicies();
+    this.renderRoles();
+  }
+
   // ─── Modals ───────────────────────────────────────────────────────────────────
   openModal(key) { this.modals[key]?.classList.add('active'); }
   closeModal(key) { this.modals[key]?.classList.remove('active'); }
 
-  // ─── 🌌 Photuris ─────────────────────────────────────────────────────────────
+  // ─── 🏛️ Sanctuaries ──────────────────────────────────────────────────────────
+  renderSanctSelector() {
+    const sancts = Object.keys(this.state.sancts || { default: {} });
+    const current = this.state.activeSanct || 'default';
+    this.sanctSelect.innerHTML = sancts.map(s => `
+      <option value="${s}" ${s === current ? 'selected' : ''}>🏛️ ${s}</option>
+    `).join('');
+  }
+
+  async handleSaveSanct() {
+    const name = document.getElementById('newSanctName').value.trim();
+    const desc = document.getElementById('newSanctDesc').value.trim();
+    if (!name) return this.toast('Introduce un nombre para el Sanctuary', 'error');
+
+    if (this.state.sancts[name]) return this.toast(`El Sanctuary '${name}' ya existe`, 'error');
+
+    this.state.sancts[name] = {
+      sanctId: `sanct_${Date.now()}`,
+      name,
+      description: desc,
+      createdAt: new Date().toISOString(),
+      users: {},
+      policies: {},
+      roles: {},
+      groupMappings: {},
+      activeSessions: {},
+      glowwormLogs: []
+    };
+    this.state.activeSanct = name;
+
+    document.getElementById('newSanctName').value = '';
+    document.getElementById('newSanctDesc').value = '';
+    this.closeModal('sanct');
+    this.syncLegacyTopLevelState();
+    this.renderAll();
+    await this.persistVaultState(`Lumina Sanct: Created sanctuary '${name}'`);
+    this.toast(`Sanctuary '${name}' creado ✔`);
+  }
+
+  async handleDeleteSanct() {
+    const current = this.state.activeSanct || 'default';
+    if (current === 'default') return this.toast("No se puede eliminar el Sanctuary 'default'", 'error');
+    if (!confirm(`¿Eliminar el Sanctuary '${current}' y todas sus identidades/políticas?`)) return;
+
+    delete this.state.sancts[current];
+    this.state.activeSanct = 'default';
+    this.syncLegacyTopLevelState();
+    this.renderAll();
+    await this.persistVaultState(`Lumina Sanct: Deleted sanctuary '${current}'`);
+    this.toast(`Sanctuary '${current}' eliminado`);
+  }
+
+  // ─── 🌌 Photuris Vault & Users ────────────────────────────────────────────────
   renderUsers() {
-    const users = Object.values(this.state.users || {});
+    const sanct = this.getActiveSanctData();
+    const users = Object.values(sanct.users || {});
     this.userCount.textContent = `${users.length} Usuario${users.length !== 1 ? 's' : ''}`;
     if (!users.length) {
-      this.userTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No hay usuarios en el vault. Crea el primero.</td></tr>`;
+      this.userTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No hay usuarios en el Sanctuary '${sanct.name}'. Crea el primero.</td></tr>`;
       return;
     }
-    this.userTableBody.innerHTML = users.map(u => `
+    this.userTableBody.innerHTML = users.map(u => {
+      const rolesArr = u.roles || (u.role ? [u.role] : ['user']);
+      const roleBadges = rolesArr.map(r => `<span class="badge" style="margin-right:2px">${r}</span>`).join('');
+      return `
       <tr>
         <td><code>${u.id}</code></td>
         <td><strong>${u.email}</strong></td>
         <td>${u.name}</td>
-        <td><span class="badge">${u.role}</span></td>
+        <td>${roleBadges}</td>
         <td><span style="color:#10b981;font-size:.8rem">● Activo</span></td>
         <td>${new Date(u.createdAt).toLocaleDateString()}</td>
         <td>
-          <button class="btn-secondary btn-sm" onclick="window.app.deleteUser('${u.id}')">🗑️</button>
+          <button class="btn-secondary btn-sm" onclick="window.app.editUser('${u.id}')" title="Editar">✏️</button>
+          <button class="btn-secondary btn-sm" onclick="window.app.deleteUser('${u.id}')" title="Eliminar">🗑️</button>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
+  }
+
+  openUserModal(user = null) {
+    const modalTitle = document.getElementById('modalUserTitle');
+    const editId = document.getElementById('editUserId');
+    const email = document.getElementById('newUserEmail');
+    const name = document.getElementById('newUserName');
+    const rolesContainer = document.getElementById('rolesCheckboxList');
+
+    // Load available roles from active Sanct + defaults
+    const sanct = this.getActiveSanctData();
+    const existingRoles = Object.values(sanct.roles || {}).map(r => r.name);
+    const defaultRoles = ['admin', 'editor', 'viewer', 'user'];
+    const allRoles = [...new Set([...defaultRoles, ...existingRoles])];
+
+    const selectedRoles = user ? (user.roles || [user.role]) : ['user'];
+
+    rolesContainer.innerHTML = allRoles.map(r => `
+      <label class="checkbox-label">
+        <input type="checkbox" name="userRoleChk" value="${r}" ${selectedRoles.includes(r) ? 'checked' : ''} />
+        <span>${r}</span>
+      </label>
+    `).join('');
+
+    if (user) {
+      modalTitle.textContent = '✏️ Editar Usuario';
+      editId.value = user.id;
+      email.value = user.email;
+      name.value = user.name;
+    } else {
+      modalTitle.textContent = '➕ Nuevo Usuario';
+      editId.value = '';
+      email.value = '';
+      name.value = '';
+    }
+
+    this.openModal('user');
+  }
+
+  editUser(userId) {
+    const sanct = this.getActiveSanctData();
+    const user = sanct.users[userId];
+    if (user) this.openUserModal(user);
   }
 
   async handleSaveUser() {
-    const email = document.getElementById('newUserEmail').value.trim();
-    const name  = document.getElementById('newUserName').value.trim();
-    const role  = document.getElementById('newUserRole').value;
+    const editId = document.getElementById('editUserId').value;
+    const email  = document.getElementById('newUserEmail').value.trim();
+    const name   = document.getElementById('newUserName').value.trim();
+    const chks   = document.querySelectorAll('input[name="userRoleChk"]:checked');
+    const roles  = Array.from(chks).map(c => c.value);
+
     if (!email || !name) return this.toast('Email y nombre son obligatorios', 'error');
+    if (roles.length === 0) return this.toast('Selecciona al menos un rol', 'error');
 
-    const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const sanct = this.getActiveSanctData();
     const now = new Date().toISOString();
-    this.state.users[userId] = { id: userId, email, name, role, createdAt: now, updatedAt: now, active: true };
 
-    document.getElementById('newUserEmail').value = '';
-    document.getElementById('newUserName').value  = '';
+    if (editId && sanct.users[editId]) {
+      // Edit
+      const u = sanct.users[editId];
+      u.email = email;
+      u.name = name;
+      u.roles = roles;
+      u.role = roles[0];
+      u.updatedAt = now;
+      this.toast(`Usuario '${email}' actualizado ✔`);
+    } else {
+      // Create
+      const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      sanct.users[userId] = {
+        id: userId,
+        email,
+        name,
+        role: roles[0],
+        roles,
+        createdAt: now,
+        updatedAt: now,
+        active: true
+      };
+      this.toast(`Usuario '${email}' creado ✔`);
+    }
+
     this.closeModal('user');
+    this.syncLegacyTopLevelState();
     this.renderUsers();
-    await this.persistVaultState(`Lumina Photuris: Created user ${email}`);
-    this.toast(`Usuario ${email} creado ✔`);
+    await this.persistVaultState(`Lumina Photuris: Saved user ${email}`);
   }
 
   async deleteUser(userId) {
     if (!confirm('¿Eliminar este usuario?')) return;
-    delete this.state.users[userId];
+    const sanct = this.getActiveSanctData();
+    delete sanct.users[userId];
+    this.syncLegacyTopLevelState();
     this.renderUsers();
     await this.persistVaultState(`Lumina Photuris: Deleted user ${userId}`);
     this.toast('Usuario eliminado');
@@ -245,15 +467,16 @@ class LuminaStudio {
   // ─── 💡 Luciole ──────────────────────────────────────────────────────────────
   handleGenerateJwt() {
     const sub  = document.getElementById('jwtSub').value.trim();
-    const role = document.getElementById('jwtRole').value.trim();
+    const roleStr = document.getElementById('jwtRole').value.trim();
     const exp  = parseInt(document.getElementById('jwtExp').value, 10) || 3600;
-    if (!sub || !role) return this.toast('Completa User ID y Role', 'error');
+    if (!sub || !roleStr) return this.toast('Completa User ID y Roles', 'error');
 
+    const roles = roleStr.split(',').map(s => s.trim());
     const b64 = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj))))
       .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
     const now = Math.floor(Date.now() / 1000);
     const header  = { alg: 'HS256', typ: 'JWT' };
-    const payload = { sub, role, iat: now, exp: now + exp, iss: 'lumina-luciole' };
+    const payload = { sub, roles, role: roles[0], iat: now, exp: now + exp, iss: 'lumina-luciole', sanct: this.state.activeSanct };
     const sigPart = `LUCIOLE_SIG_${Date.now().toString(36).toUpperCase()}`;
     const token = `${b64(header)}.${b64(payload)}.${sigPart}`;
     document.getElementById('jwtOutput').textContent = token;
@@ -264,11 +487,11 @@ class LuminaStudio {
     document.getElementById('jwksOutput').textContent = JSON.stringify(jwks, null, 2);
   }
 
-  // ─── 📋 Pyralis ──────────────────────────────────────────────────────────────
+  // ─── 📋 Pyralis IAM ──────────────────────────────────────────────────────────
   handleEvalIam() {
     const action   = document.getElementById('iamAction').value.trim();
     const resource = document.getElementById('iamResource').value.trim();
-    const role     = document.getElementById('iamRole').value.trim();
+    const rolesStr = document.getElementById('iamRole').value.trim();
     if (!action || !resource) return this.toast('Completa Action y Resource', 'error');
 
     const box    = document.getElementById('iamResult');
@@ -276,24 +499,41 @@ class LuminaStudio {
     const reason = document.getElementById('iamResultReason');
     box.classList.remove('hidden');
 
-    // Evaluate against real policies in state
-    const policies = Object.values(this.state.policies || {});
-    const result = this._evalPolicies(policies, action, resource, role);
+    const sanct = this.getActiveSanctData();
+    const policies = Object.values(sanct.policies || {});
+    const roles = rolesStr ? rolesStr.split(',').map(s => s.trim()) : ['admin'];
+
+    const result = this._evalPoliciesForRoles(policies, sanct.roles || {}, action, resource, roles);
 
     badge.textContent = result.allowed ? 'ALLOW' : 'DENY';
     badge.style.background = result.allowed ? '#10b981' : '#ef4444';
     reason.textContent = result.reason;
   }
 
-  _evalPolicies(policies, action, resource, userRole) {
+  _evalPoliciesForRoles(policies, allRoles, action, resource, userRoles) {
     if (!policies.length) return { allowed: false, reason: 'No hay políticas en el vault — Implicit Deny' };
     let hasAllow = false;
     const glob = (pattern, text) => {
       if (pattern === '*') return true;
       return new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i').test(text);
     };
-    for (const pol of policies) {
-      for (const stmt of pol.statements) {
+
+    // Gather policies attached to user's roles
+    const attachedPolicyIds = new Set();
+    for (const rName of userRoles) {
+      const roleObj = Object.values(allRoles).find(r => r.name === rName);
+      if (roleObj && roleObj.policyIds) {
+        roleObj.policyIds.forEach(id => attachedPolicyIds.add(id));
+      }
+    }
+
+    // Filter policies (if roles matched explicit policyIds, use those; otherwise use all policies for backwards compatibility)
+    const targetPolicies = attachedPolicyIds.size > 0
+      ? policies.filter(p => attachedPolicyIds.has(p.policyId))
+      : policies;
+
+    for (const pol of targetPolicies) {
+      for (const stmt of pol.statements || []) {
         const actions = Array.isArray(stmt.Action) ? stmt.Action : [stmt.Action];
         const resources = Array.isArray(stmt.Resource) ? stmt.Resource : [stmt.Resource];
         if (!actions.some(a => glob(a, action))) continue;
@@ -308,9 +548,10 @@ class LuminaStudio {
   }
 
   renderPolicies() {
-    const policies = Object.values(this.state.policies || {});
+    const sanct = this.getActiveSanctData();
+    const policies = Object.values(sanct.policies || {});
     if (!policies.length) {
-      this.policyTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin políticas. Crea la primera.</td></tr>`;
+      this.policyTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin políticas en '${sanct.name}'. Crea la primera.</td></tr>`;
       return;
     }
     this.policyTableBody.innerHTML = policies.map(p => `
@@ -320,15 +561,53 @@ class LuminaStudio {
         <td><span class="badge">${p.provider ?? 'terra'}</span></td>
         <td>${p.statements?.length ?? 0} statements</td>
         <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</td>
-        <td><button class="btn-secondary btn-sm" onclick="window.app.deletePolicy('${p.policyId}')">🗑️</button></td>
+        <td>
+          <button class="btn-secondary btn-sm" onclick="window.app.editPolicy('${p.policyId}')" title="Editar">✏️</button>
+          <button class="btn-secondary btn-sm" onclick="window.app.deletePolicy('${p.policyId}')" title="Eliminar">🗑️</button>
+        </td>
       </tr>`).join('');
   }
 
+  openPolicyModal(policy = null) {
+    const title = document.getElementById('modalPolicyTitle');
+    const editId = document.getElementById('editPolicyId');
+    const name = document.getElementById('newPolicyName');
+    const desc = document.getElementById('newPolicyDesc');
+    const provider = document.getElementById('newPolicyProvider');
+    const stmts = document.getElementById('newPolicyStatements');
+
+    if (policy) {
+      title.textContent = '✏️ Editar Política Pyralis';
+      editId.value = policy.policyId;
+      name.value = policy.name;
+      desc.value = policy.description || '';
+      provider.value = policy.provider || 'terra';
+      stmts.value = JSON.stringify(policy.statements || [], null, 2);
+    } else {
+      title.textContent = '📋 Nueva Política Pyralis';
+      editId.value = '';
+      name.value = '';
+      desc.value = '';
+      provider.value = 'terra';
+      stmts.value = JSON.stringify([{ Effect: 'Allow', Action: 'combase:*', Resource: 'arn:terra:combase:*' }], null, 2);
+    }
+
+    this.openModal('policy');
+  }
+
+  editPolicy(policyId) {
+    const sanct = this.getActiveSanctData();
+    const policy = sanct.policies[policyId];
+    if (policy) this.openPolicyModal(policy);
+  }
+
   async handleSavePolicy() {
+    const editId   = document.getElementById('editPolicyId').value;
     const name     = document.getElementById('newPolicyName').value.trim();
     const desc     = document.getElementById('newPolicyDesc').value.trim();
     const provider = document.getElementById('newPolicyProvider').value;
     const raw      = document.getElementById('newPolicyStatements').value.trim();
+
     if (!name) return this.toast('El nombre de la política es obligatorio', 'error');
 
     let statements = [];
@@ -336,30 +615,44 @@ class LuminaStudio {
       return this.toast('Los statements no son JSON válido', 'error');
     }
 
-    const policyId = `pol_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
-    this.state.policies[policyId] = { policyId, name, description: desc, statements, provider, createdAt: new Date().toISOString() };
+    const sanct = this.getActiveSanctData();
+    const now = new Date().toISOString();
 
-    document.getElementById('newPolicyName').value       = '';
-    document.getElementById('newPolicyDesc').value       = '';
-    document.getElementById('newPolicyStatements').value = '';
+    if (editId && sanct.policies[editId]) {
+      const p = sanct.policies[editId];
+      p.name = name;
+      p.description = desc;
+      p.provider = provider;
+      p.statements = statements;
+      p.updatedAt = now;
+      this.toast(`Política '${name}' actualizada ✔`);
+    } else {
+      const policyId = `pol_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
+      sanct.policies[policyId] = { policyId, name, description: desc, statements, provider, createdAt: now };
+      this.toast(`Política '${name}' creada ✔`);
+    }
+
     this.closeModal('policy');
+    this.syncLegacyTopLevelState();
     this.renderPolicies();
-    await this.persistVaultState(`Lumina Pyralis: Created policy '${name}'`);
-    this.toast(`Política '${name}' creada ✔`);
+    await this.persistVaultState(`Lumina Pyralis: Saved policy '${name}'`);
   }
 
   async deletePolicy(policyId) {
     if (!confirm('¿Eliminar esta política?')) return;
-    delete this.state.policies[policyId];
+    const sanct = this.getActiveSanctData();
+    delete sanct.policies[policyId];
+    this.syncLegacyTopLevelState();
     this.renderPolicies();
     await this.persistVaultState(`Lumina Pyralis: Deleted policy ${policyId}`);
     this.toast('Política eliminada');
   }
 
   renderRoles() {
-    const roles = Object.values(this.state.roles || {});
+    const sanct = this.getActiveSanctData();
+    const roles = Object.values(sanct.roles || {});
     if (!roles.length) {
-      this.roleTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin roles. Crea el primero.</td></tr>`;
+      this.roleTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin roles en '${sanct.name}'. Crea el primero.</td></tr>`;
       return;
     }
     this.roleTableBody.innerHTML = roles.map(r => `
@@ -369,33 +662,98 @@ class LuminaStudio {
         <td><span class="badge">${r.provider ?? 'terra'}</span></td>
         <td>${r.policyIds?.length ?? 0} políticas</td>
         <td>${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—'}</td>
-        <td><button class="btn-secondary btn-sm" onclick="window.app.deleteRole('${r.roleId}')">🗑️</button></td>
+        <td>
+          <button class="btn-secondary btn-sm" onclick="window.app.editRole('${r.roleId}')" title="Editar">✏️</button>
+          <button class="btn-secondary btn-sm" onclick="window.app.deleteRole('${r.roleId}')" title="Eliminar">🗑️</button>
+        </td>
       </tr>`).join('');
   }
 
+  openRoleModal(role = null) {
+    const title = document.getElementById('modalRoleTitle');
+    const editId = document.getElementById('editRoleId');
+    const name = document.getElementById('newRoleName');
+    const desc = document.getElementById('newRoleDesc');
+    const provider = document.getElementById('newRoleProvider');
+    const policiesContainer = document.getElementById('policiesCheckboxList');
+
+    const sanct = this.getActiveSanctData();
+    const availablePolicies = Object.values(sanct.policies || {});
+
+    const selectedPolicyIds = role ? (role.policyIds || []) : [];
+
+    if (!availablePolicies.length) {
+      policiesContainer.innerHTML = '<span class="text-muted" style="font-size:0.8rem;">No hay políticas creadas en este Sanctuary. Crea una primero.</span>';
+    } else {
+      policiesContainer.innerHTML = availablePolicies.map(p => `
+        <label class="checkbox-label">
+          <input type="checkbox" name="rolePolicyChk" value="${p.policyId}" ${selectedPolicyIds.includes(p.policyId) ? 'checked' : ''} />
+          <span><strong>${p.name}</strong> (<code>${p.policyId}</code>)</span>
+        </label>
+      `).join('');
+    }
+
+    if (role) {
+      title.textContent = '✏️ Editar Rol Pyralis';
+      editId.value = role.roleId;
+      name.value = role.name;
+      desc.value = role.description || '';
+      provider.value = role.provider || 'terra';
+    } else {
+      title.textContent = '🎭 Nuevo Rol Pyralis';
+      editId.value = '';
+      name.value = '';
+      desc.value = '';
+      provider.value = 'terra';
+    }
+
+    this.openModal('role');
+  }
+
+  editRole(roleId) {
+    const sanct = this.getActiveSanctData();
+    const role = sanct.roles[roleId];
+    if (role) this.openRoleModal(role);
+  }
+
   async handleSaveRole() {
-    const name      = document.getElementById('newRoleName').value.trim();
-    const desc      = document.getElementById('newRoleDesc').value.trim();
-    const provider  = document.getElementById('newRoleProvider').value;
-    const rawPols   = document.getElementById('newRolePolicies').value.trim();
+    const editId   = document.getElementById('editRoleId').value;
+    const name     = document.getElementById('newRoleName').value.trim();
+    const desc     = document.getElementById('newRoleDesc').value.trim();
+    const provider = document.getElementById('newRoleProvider').value;
+    const chks     = document.querySelectorAll('input[name="rolePolicyChk"]:checked');
+    const policyIds = Array.from(chks).map(c => c.value);
+
     if (!name) return this.toast('El nombre del rol es obligatorio', 'error');
 
-    const policyIds = rawPols ? rawPols.split(',').map(s => s.trim()).filter(Boolean) : [];
-    const roleId = `role_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
-    this.state.roles[roleId] = { roleId, name, description: desc, policyIds, provider, createdAt: new Date().toISOString() };
+    const sanct = this.getActiveSanctData();
+    const now = new Date().toISOString();
 
-    document.getElementById('newRoleName').value     = '';
-    document.getElementById('newRoleDesc').value     = '';
-    document.getElementById('newRolePolicies').value = '';
+    if (editId && sanct.roles[editId]) {
+      const r = sanct.roles[editId];
+      r.name = name;
+      r.description = desc;
+      r.provider = provider;
+      r.policyIds = policyIds;
+      r.updatedAt = now;
+      this.toast(`Rol '${name}' actualizado ✔`);
+    } else {
+      const roleId = `role_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
+      sanct.roles[roleId] = { roleId, name, description: desc, policyIds, provider, createdAt: now };
+      this.toast(`Rol '${name}' creado ✔`);
+    }
+
     this.closeModal('role');
+    this.syncLegacyTopLevelState();
     this.renderRoles();
-    await this.persistVaultState(`Lumina Pyralis: Created role '${name}'`);
-    this.toast(`Rol '${name}' creado ✔`);
+    await this.persistVaultState(`Lumina Pyralis: Saved role '${name}'`);
   }
 
   async deleteRole(roleId) {
     if (!confirm('¿Eliminar este rol?')) return;
-    delete this.state.roles[roleId];
+    const sanct = this.getActiveSanctData();
+    delete sanct.roles[roleId];
+    this.syncLegacyTopLevelState();
     this.renderRoles();
     await this.persistVaultState(`Lumina Pyralis: Deleted role ${roleId}`);
     this.toast('Rol eliminado');
@@ -423,31 +781,39 @@ class LuminaStudio {
     const tokenId = 'gw_' + Math.random().toString(36).slice(2, 10).toUpperCase();
     const exp = new Date(Date.now() + 15 * 60 * 1000);
     document.getElementById('gwOutput').textContent =
-      `⚡ GLOWWORM BREAK-GLASS EMITIDO\n\nToken ID:   ${tokenId}\nUsuario:    ${userId}\nMotivo:     ${reason}\nExpira:     ${exp.toLocaleTimeString()} (15 min)\nNivel:      Super-Administrator — Full Grant\n\n⚠️  Registrado en .lumina-storage audit log`;
+      `⚡ GLOWWORM BREAK-GLASS EMITIDO\n\nToken ID:   ${tokenId}\nUsuario:    ${userId}\nMotivo:     ${reason}\nExpira:     ${exp.toLocaleTimeString()} (15 min)\nSanctuary:  ${this.state.activeSanct}\nNivel:      Super-Administrator — Full Grant\n\n⚠️  Registrado en .lumina-storage audit log`;
     this.toast('Break-Glass emitido — válido 15 min', 'warn');
   }
 
   // ─── 🐝 Coleoptera ────────────────────────────────────────────────────────────
   handleExportBridge() {
     const provider = document.getElementById('bridgeProvider').value;
-    const users    = Object.values(this.state.users || {});
-    const policies = Object.values(this.state.policies || {});
+    const sanct    = this.getActiveSanctData();
+    const users    = Object.values(sanct.users || {});
+    const policies = Object.values(sanct.policies || {});
     let out = '';
 
     if (provider === 'auth0') {
       out = JSON.stringify(users.map(u => ({
         user_id: u.id, email: u.email, name: u.name,
-        app_metadata: { role: u.role, org_id: u.orgId ?? null }
+        app_metadata: { roles: u.roles || [u.role], org_id: u.orgId ?? null, sanct: sanct.name }
       })), null, 2);
     } else if (provider === 'supabase') {
       out = users.length
-        ? users.map(u => `INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES\n  ('${u.id}', '${u.email}', '{"role":"${u.role}","name":"${u.name}"}');`).join('\n')
+        ? users.map(u => `INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES\n  ('${u.id}', '${u.email}', '{"roles":${JSON.stringify(u.roles || [u.role])},"name":"${u.name}","sanct":"${sanct.name}"}');`).join('\n')
         : '-- No users to export';
     } else if (provider === 'aws_iam') {
       out = JSON.stringify(policies.map(p => ({
         PolicyName: p.name,
         PolicyDocument: { Version: '2012-10-17', Statement: p.statements }
       })), null, 2) || '[]';
+    } else if (provider === 'firebase') {
+      out = JSON.stringify({
+        users: users.map(u => ({
+          localId: u.id, email: u.email, displayName: u.name,
+          customAttributes: JSON.stringify({ roles: u.roles || [u.role], sanct: sanct.name })
+        }))
+      }, null, 2);
     }
 
     document.getElementById('bridgeOutput').textContent = out || '// Sin datos para exportar';

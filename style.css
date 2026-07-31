@@ -72,14 +72,14 @@ body {
 .app-layout { display: flex; min-height: 100vh; }
 
 .sidebar {
-  width: 256px; flex-shrink: 0;
+  width: 265px; flex-shrink: 0;
   background: rgba(252, 154, 10, 0.03);
   border-right: 1px solid rgba(252, 154, 10, 0.12);
   padding: 1.25rem 1rem;
   display: flex; flex-direction: column;
 }
 
-.brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border); }
 .brand-logo { width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 0 6px var(--primary-glow)); }
 .brand-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.06em; color: var(--primary); }
 .brand-badge {
@@ -87,6 +87,46 @@ body {
   background: rgba(252, 154, 10, 0.15);
   color: var(--primary); padding: 1px 6px; border-radius: 4px; display: inline-block;
 }
+
+/* ─── Sanctuary Selector ───────────────────────────── */
+.sanct-selector {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(252,154,10,0.25);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.sanct-label { font-size: 0.7rem; text-transform: uppercase; color: var(--primary); font-weight: 700; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+.sanct-controls { display: flex; align-items: center; gap: 0.4rem; }
+.sanct-select {
+  flex: 1;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  outline: none;
+}
+.sanct-select:focus { border-color: var(--primary); }
+
+.btn-icon {
+  background: rgba(252,154,10,0.15);
+  border: 1px solid rgba(252,154,10,0.3);
+  color: var(--primary);
+  width: 28px; height: 28px;
+  border-radius: 6px; font-weight: 700; font-size: 0.9rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.btn-icon:hover { background: rgba(252,154,10,0.3); }
+
+.btn-danger-sm {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.3);
+  color: var(--danger);
+}
+.btn-danger-sm:hover { background: rgba(239,68,68,0.3); }
 
 .nav-menu { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; }
 .nav-item {
@@ -190,6 +230,21 @@ body {
 .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 8px var(--primary-glow); }
 .form-group textarea { resize: vertical; min-height: 90px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
 
+/* Checkboxes List in Modals */
+.roles-checkbox-list {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  max-height: 140px; overflow-y: auto;
+  padding: 0.6rem; background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border); border-radius: 6px;
+}
+.checkbox-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.82rem; cursor: pointer; color: var(--text);
+}
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--primary); width: 15px; height: 15px;
+}
+
 .code-preview {
   background: rgba(0,0,0,0.55); border: 1px solid var(--border);
   border-radius: 8px; padding: 1rem;
@@ -226,7 +281,7 @@ body {
 .modal.active { opacity: 1; pointer-events: auto; }
 .modal-card {
   background: #111118; border: 1px solid rgba(252,154,10,0.2);
-  border-radius: 14px; padding: 2rem; width: 100%; max-width: 500px;
+  border-radius: 14px; padding: 2rem; width: 100%; max-width: 520px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px var(--primary-glow);
 }
 .modal-card h3 { margin-bottom: 1.25rem; font-size: 1rem; }
