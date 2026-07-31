@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LUMINA Studio — Identity & Auth Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Auth Lock Screen -->
+  <div id="authOverlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-icon">🔐</div>
+        <h2>LUMINA Studio</h2>
+        <p>Servicio de Identidad, Autenticación y Políticas IAM del Ecosistema Terra</p>
+      </div>
+      <div class="auth-form">
+        <label for="patInput">GitHub Personal Access Token (PAT):</label>
+        <input type="password" id="patInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+        <button id="btnConnect" class="btn-primary">Conectar a .lumina-storage</button>
+        <p class="auth-hint">🔒 Tus credenciales nunca salen de tu navegador. El token se guarda localmente de forma encriptada.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Layout -->
+  <div class="app-layout" id="appLayout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon">🔐</span>
+        <span class="brand-title">LUMINA</span>
+        <span class="brand-badge">v1.0.0</span>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="photuris">
+          <span class="nav-icon">🌌</span> Photuris Vault
+        </button>
+        <button class="nav-item" data-tab="luciole">
+          <span class="nav-icon">💡</span> Luciole JWT & JWKS
+        </button>
+        <button class="nav-item" data-tab="pyralis">
+          <span class="nav-icon">🪲</span> Pyralis IAM Policies
+        </button>
+        <button class="nav-item" data-tab="lantern">
+          <span class="nav-icon">🏮</span> LanternLinks OTP
+        </button>
+        <button class="nav-item" data-tab="glowworm">
+          <span class="nav-icon">⚡</span> Glowworm Break-Glass
+        </button>
+        <button class="nav-item" data-tab="coleoptera">
+          <span class="nav-icon">🐝</span> Coleoptera Bridge
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="dot"></span>
+          <span id="connStatus">Conectado a GitHub</span>
+        </div>
+        <button id="btnDisconnect" class="btn-secondary btn-sm">Desconectar</button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-info">
+          <h1 id="tabTitle">Photuris Directory & Vault</h1>
+          <p id="tabDesc">Gestión inmutable de usuarios e identidades guardadas en .lumina-storage</p>
+        </div>
+      </header>
+
+      <!-- Tab Content: Photuris -->
+      <section id="tab-photuris" class="tab-panel active">
+        <div class="action-bar">
+          <button id="btnCreateUser" class="btn-primary">➕ Nuevo Usuario</button>
+          <span class="spacer"></span>
+          <span id="userCount" class="badge">0 Usuarios</span>
+        </div>
+        <div class="table-container glass-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Nombre</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Fecha Creación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr><td colspan="7" class="text-center text-muted">Cargando usuarios desde .lumina-storage...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tab Content: Luciole -->
+      <section id="tab-luciole" class="tab-panel">
+        <div class="grid-2">
+          <div class="glass-card">
+            <h3>💡 Luciole JWT Generator & Signer</h3>
+            <div class="form-group">
+              <label>User ID (Subject):</label>
+              <input type="text" id="jwtSub" value="usr_demo_123" />
+            </div>
+            <div class="form-group">
+              <label>User Role:</label>
+              <input type="text" id="jwtRole" value="admin" />
+            </div>
+            <div class="form-group">
+              <label>Expiración (Segundos):</label>
+              <input type="number" id="jwtExp" value="3600" />
+            </div>
+            <button id="btnGenerateJwt" class="btn-primary">Generar & Firmar JWT</button>
+            <div class="code-preview" id="jwtOutput">Haga clic en Generar para emitir un token firmado por Luciole</div>
+          </div>
+
+          <div class="glass-card">
+            <h3>🔑 JWKS Public Key Set</h3>
+            <p class="text-muted">Clave pública expuesta abiertamente para verificación de firma offline a 0ms de latencia.</p>
+            <button id="btnFetchJwks" class="btn-secondary">Cargar JWKS Public Keys</button>
+            <pre class="code-preview" id="jwksOutput">{ "keys": [] }</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab Content: Pyralis -->
+      <section id="tab-pyralis" class="tab-panel">
+        <div class="glass-card">
+          <h3>🪲 Pyralis IAM Policy Evaluator (AWS IAM Compatible)</h3>
+          <p class="text-muted">Prueba la evaluación explícita de permisos Allow/Deny sobre recursos de Terra y nubes externas.</p>
+          
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Action (ej. combase:query, rolla:upload):</label>
+              <input type="text" id="iamAction" value="combase:query" />
+            </div>
+            <div class="form-group">
+              <label>Resource (ARN o URI):</label>
+              <input type="text" id="iamResource" value="arn:terra:combase:prod_db/users" />
+            </div>
+            <div class="form-group">
+              <label>User Role:</label>
+              <input type="text" id="iamRole" value="admin" />
+            </div>
+          </div>
+          <button id="btnEvalIam" class="btn-primary">Evaluar Política Pyralis</button>
+          
+          <div id="iamResult" class="result-box hidden">
+            <span class="result-badge" id="iamResultBadge">ALLOW</span>
+            <span id="iamResultReason">Permitido por política de administrador</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab Content: LanternLinks -->
+      <section id="tab-lantern" class="tab-panel">
+        <div class="glass-card">
+          <h3>🏮 LanternLinks Serverless Magic Links</h3>
+          <div class="form-group">
+            <label>Email de Usuario:</label>
+            <input type="email" id="magicEmail" value="user@terra.org" />
+          </div>
+          <button id="btnCreateMagic" class="btn-primary">Generar Magic Link OTP</button>
+          <div class="code-preview" id="magicOutput">Resultados del token OTP...</div>
+        </div>
+      </section>
+
+      <!-- Tab Content: Glowworm -->
+      <section id="tab-glowworm" class="tab-panel">
+        <div class="glass-card">
+          <h3>⚡ Glowworm Break-Glass Emergency Credentials</h3>
+          <p class="text-muted">Emitir credencial temporal de super-administrador (15 min) para emergencias.</p>
+          <div class="form-group">
+            <label>ID de Usuario Beneficiario:</label>
+            <input type="text" id="gwUser" value="usr_admin_oncall" />
+          </div>
+          <div class="form-group">
+            <label>Motivo de la Emergencia:</label>
+            <input type="text" id="gwReason" value="Incidente crítico en producción — Reparación directa" />
+          </div>
+          <button id="btnIssueGw" class="btn-primary btn-danger">⚡ Emitir Token Break-Glass (15 min)</button>
+          <div class="code-preview" id="gwOutput">Los tokens de emergencia se registrarán en .lumina-storage...</div>
+        </div>
+      </section>
+
+      <!-- Tab Content: Coleoptera -->
+      <section id="tab-coleoptera" class="tab-panel">
+        <div class="glass-card">
+          <h3>🐝 Coleoptera Active Directory & Provider Bridge Exporter</h3>
+          <div class="form-group">
+            <label>Proveedor Destino:</label>
+            <select id="bridgeProvider">
+              <option value="auth0">Auth0 JSON Format</option>
+              <option value="supabase">Supabase Auth SQL Dump</option>
+              <option value="aws_iam">AWS IAM JSON Policy</option>
+            </select>
+          </div>
+          <button id="btnExportBridge" class="btn-primary">Exportar Datos de Identidad</button>
+          <pre class="code-preview" id="bridgeOutput">// Selecciona un proveedor y haz clic en Exportar</pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Create User Modal -->
+  <div id="modalUser" class="modal">
+    <div class="modal-card">
+      <h3>➕ Crear Nuevo Usuario en Photuris</h3>
+      <div class="form-group">
+        <label>Email:</label>
+        <input type="email" id="newUserEmail" placeholder="usuario@terra.org" />
+      </div>
+      <div class="form-group">
+        <label>Nombre:</label>
+        <input type="text" id="newUserName" placeholder="Nombre completo" />
+      </div>
+      <div class="form-group">
+        <label>Rol:</label>
+        <select id="newUserRole">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="editor">Editor</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button id="btnCancelUser" class="btn-secondary">Cancelar</button>
+        <button id="btnSaveUser" class="btn-primary">Guardar Usuario</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
