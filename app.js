@@ -41,9 +41,8 @@ class LuminaStudio {
     this.btnConnect      = document.getElementById('btnConnect');
     this.btnDisconnect   = document.getElementById('btnDisconnect');
     this.connStatus      = document.getElementById('connStatus');
-    this.sanctSelect     = document.getElementById('sanctSelect');
+    this.sanctListEl     = document.getElementById('sanctList');
     this.btnNewSanct     = document.getElementById('btnNewSanct');
-    this.btnDeleteSanct  = document.getElementById('btnDeleteSanct');
     this.userTableBody   = document.getElementById('userTableBody');
     this.userCount       = document.getElementById('userCount');
     this.policyTableBody = document.getElementById('policyTableBody');
@@ -55,10 +54,11 @@ class LuminaStudio {
     this.subTabs         = document.querySelectorAll('.sub-tab');
     this.subPanels       = document.querySelectorAll('.sub-panel');
     this.modals          = {
-      user:   document.getElementById('modalUser'),
-      policy: document.getElementById('modalPolicy'),
-      role:   document.getElementById('modalRole'),
-      sanct:  document.getElementById('modalSanct'),
+      user:         document.getElementById('modalUser'),
+      policy:       document.getElementById('modalPolicy'),
+      role:         document.getElementById('modalRole'),
+      sanct:        document.getElementById('modalSanct'),
+      renameSanct:  document.getElementById('modalRenameSanct'),
     };
   }
 
@@ -109,18 +109,18 @@ class LuminaStudio {
       this.authOverlay.classList.remove('hidden');
     });
 
-    // Sanct selector change
-    this.sanctSelect.addEventListener('change', (e) => {
-      this.state.activeSanct = e.target.value;
-      this.syncLegacyTopLevelState();
-      this.renderAll();
-      this.toast(`Sanctuary cambiado a '${this.state.activeSanct}'`);
+    // Sanctuary panel — new sanct button
+    this.btnNewSanct.addEventListener('click', () => {
+      document.getElementById('newSanctName').value = '';
+      document.getElementById('newSanctDesc').value = '';
+      this.openModal('sanct');
     });
 
-    this.btnNewSanct.addEventListener('click', () => this.openModal('sanct'));
-    this.btnDeleteSanct.addEventListener('click', () => this.handleDeleteSanct());
+    // Sanctuary modals
     document.getElementById('btnCancelSanct').addEventListener('click', () => this.closeModal('sanct'));
     document.getElementById('btnSaveSanct').addEventListener('click', () => this.handleSaveSanct());
+    document.getElementById('btnCancelRenameSanct').addEventListener('click', () => this.closeModal('renameSanct'));
+    document.getElementById('btnSaveRenameSanct').addEventListener('click', () => this.handleSaveRenameSanct());
 
     // Main tabs
     this.navItems.forEach(item => item.addEventListener('click', () => this.switchTab(item.dataset.tab)));
@@ -222,33 +222,49 @@ class LuminaStudio {
         const content = atob(file.content.replace(/\s/g, ''));
         const parsed = JSON.parse(content);
 
-        // Bootstrap sancts if missing
-        if (!parsed.sancts) {
-          parsed.sancts = {
-            default: {
-              sanctId: 'sanct_default',
-              name: 'default',
-              description: 'Entorno por defecto',
-              createdAt: new Date().toISOString(),
-              users: parsed.users || {},
-              policies: parsed.policies || {},
-              roles: parsed.roles || {},
-              groupMappings: {},
-              activeSessions: {},
-              glowwormLogs: []
-            }
+        // Always ensure 'default' sanct exists (migration from v1.0 or fresh vault)
+        if (!parsed.sancts) parsed.sancts = {};
+        if (!parsed.sancts['default']) {
+          parsed.sancts['default'] = {
+            sanctId: 'sanct_default',
+            name: 'default',
+            description: 'Entorno por defecto',
+            createdAt: new Date().toISOString(),
+            users: parsed.users || {},
+            policies: parsed.policies || {},
+            roles: parsed.roles || {},
+            groupMappings: {},
+            activeSessions: {},
+            glowwormLogs: []
           };
-          parsed.activeSanct = 'default';
         }
+        if (!parsed.activeSanct) parsed.activeSanct = 'default';
+        // Ensure activeSanct still exists (could have been deleted externally)
+        if (!parsed.sancts[parsed.activeSanct]) parsed.activeSanct = 'default';
 
         this.state = { ...this.state, ...parsed };
       }
     } catch (err) {
-      console.info('Vault is empty or does not exist yet.');
+      console.info('Vault is empty or does not exist yet — starting fresh.');
+    }
+
+    // Guarantee default sanct always exists in state
+    if (!this.state.sancts) this.state.sancts = {};
+    if (!this.state.sancts['default']) {
+      this.state.sancts['default'] = {
+        sanctId: 'sanct_default',
+        name: 'default',
+        description: 'Entorno por defecto',
+        createdAt: new Date().toISOString(),
+        users: {}, policies: {}, roles: {},
+        groupMappings: {}, activeSessions: {}, glowwormLogs: []
+      };
+    }
+    if (!this.state.activeSanct || !this.state.sancts[this.state.activeSanct]) {
+      this.state.activeSanct = 'default';
     }
 
     this.syncLegacyTopLevelState();
-    this.renderSanctSelector();
     this.renderAll();
   }
 
@@ -277,7 +293,7 @@ class LuminaStudio {
   }
 
   renderAll() {
-    this.renderSanctSelector();
+    this.renderSanctPanel();
     this.renderUsers();
     this.renderPolicies();
     this.renderRoles();
@@ -288,12 +304,65 @@ class LuminaStudio {
   closeModal(key) { this.modals[key]?.classList.remove('active'); }
 
   // ─── 🏛️ Sanctuaries ──────────────────────────────────────────────────────────
-  renderSanctSelector() {
+  renderSanctPanel() {
     const sancts = Object.keys(this.state.sancts || { default: {} });
     const current = this.state.activeSanct || 'default';
-    this.sanctSelect.innerHTML = sancts.map(s => `
-      <option value="${s}" ${s === current ? 'selected' : ''}>🏛️ ${s}</option>
-    `).join('');
+
+    this.sanctListEl.innerHTML = sancts.map(name => {
+      const isActive = name === current;
+      const isDefault = name === 'default';
+      const count = Object.keys(this.state.sancts[name]?.users || {}).length;
+      return `
+        <div class="sanct-item${isActive ? ' active' : ''}" data-sanct="${name}">
+          <span class="sanct-item-icon">${isActive ? '▶' : '◯'}</span>
+          <span class="sanct-item-name" title="${name}">${name}</span>
+          ${isDefault ? '<span class="sanct-item-default">default</span>' : ''}
+          <div class="sanct-item-actions">
+            <button class="sanct-action-btn" onclick="event.stopPropagation();window.app.openRenameSanctModal('${name}')" title="Renombrar">✏️</button>
+            ${!isDefault ? `<button class="sanct-action-btn delete" onclick="event.stopPropagation();window.app.handleDeleteSanct('${name}')" title="Eliminar">🗑</button>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    // Bind click to switch sanctuary
+    this.sanctListEl.querySelectorAll('.sanct-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const name = el.dataset.sanct;
+        if (name === this.state.activeSanct) return;
+        this.state.activeSanct = name;
+        this.syncLegacyTopLevelState();
+        this.renderAll();
+        this.toast(`Sanctuary cambiado a '${name}'`);
+      });
+    });
+  }
+
+  openRenameSanctModal(name) {
+    document.getElementById('renameSanctOldName').value = name;
+    document.getElementById('renameSanctOldDisplay').value = name;
+    document.getElementById('renameSanctNewName').value = '';
+    this.openModal('renameSanct');
+  }
+
+  async handleSaveRenameSanct() {
+    const oldName = document.getElementById('renameSanctOldName').value;
+    const newName = document.getElementById('renameSanctNewName').value.trim();
+    if (!newName) return this.toast('Introduce un nombre nuevo', 'error');
+    if (newName === oldName) return this.closeModal('renameSanct');
+    if (this.state.sancts[newName]) return this.toast(`El Sanctuary '${newName}' ya existe`, 'error');
+    if (!/^[a-z0-9_-]+$/i.test(newName)) return this.toast('Nombre inválido — solo letras, números, guiones y guiones bajos', 'error');
+
+    const s = this.state.sancts[oldName];
+    s.name = newName;
+    this.state.sancts[newName] = s;
+    delete this.state.sancts[oldName];
+    if (this.state.activeSanct === oldName) this.state.activeSanct = newName;
+
+    this.closeModal('renameSanct');
+    this.syncLegacyTopLevelState();
+    this.renderAll();
+    await this.persistVaultState(`Lumina Sanct: Renamed sanctuary '${oldName}' to '${newName}'`);
+    this.toast(`Sanctuary renombrado a '${newName}' ✔`);
   }
 
   async handleSaveSanct() {
@@ -326,17 +395,17 @@ class LuminaStudio {
     this.toast(`Sanctuary '${name}' creado ✔`);
   }
 
-  async handleDeleteSanct() {
-    const current = this.state.activeSanct || 'default';
-    if (current === 'default') return this.toast("No se puede eliminar el Sanctuary 'default'", 'error');
-    if (!confirm(`¿Eliminar el Sanctuary '${current}' y todas sus identidades/políticas?`)) return;
+  async handleDeleteSanct(name) {
+    const target = name || this.state.activeSanct || 'default';
+    if (target === 'default') return this.toast("No se puede eliminar el Sanctuary 'default'", 'error');
+    if (!confirm(`¿Eliminar el Sanctuary '${target}' y todas sus identidades/políticas?`)) return;
 
-    delete this.state.sancts[current];
-    this.state.activeSanct = 'default';
+    delete this.state.sancts[target];
+    if (this.state.activeSanct === target) this.state.activeSanct = 'default';
     this.syncLegacyTopLevelState();
     this.renderAll();
-    await this.persistVaultState(`Lumina Sanct: Deleted sanctuary '${current}'`);
-    this.toast(`Sanctuary '${current}' eliminado`);
+    await this.persistVaultState(`Lumina Sanct: Deleted sanctuary '${target}'`);
+    this.toast(`Sanctuary '${target}' eliminado`);
   }
 
   // ─── 🌌 Photuris Vault & Users ────────────────────────────────────────────────

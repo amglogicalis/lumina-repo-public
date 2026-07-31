@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LUMINA Studio v1.1 — Identity & Auth Engine</title>
+  <title>LUMINA Studio v1.1 — Identity &amp; Auth Engine</title>
   <link rel="icon" type="image/png" href="assets/logo_lumina.png">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,13 +41,18 @@
         </div>
       </div>
 
-      <!-- Sanctuary Selector -->
-      <div class="sanct-selector">
-        <div class="sanct-label">🏛️ Sanctuary</div>
-        <div class="sanct-controls">
-          <select id="sanctSelect" class="sanct-select" title="Active Sanctuary"></select>
-          <button id="btnNewSanct" class="btn-icon" title="New Sanctuary">＋</button>
-          <button id="btnDeleteSanct" class="btn-icon btn-danger-sm" title="Delete Sanctuary">✕</button>
+      <!-- Sanctuary Panel -->
+      <div class="sanct-panel">
+        <div class="sanct-panel-header">
+          <span class="sanct-panel-title">🏛️ Sanctuaries</span>
+          <button id="btnNewSanct" class="sanct-add-btn" title="Crear nuevo Sanctuary">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div id="sanctList" class="sanct-list">
+          <!-- populated by JS -->
         </div>
       </div>
 
@@ -118,96 +123,83 @@
           <div class="glass-card">
             <h3>💡 Luciole JWT Generator &amp; Signer</h3>
             <div class="form-group">
-              <label>User ID (Subject):</label>
-              <input type="text" id="jwtSub" placeholder="usr_..." />
+              <label>User ID (sub):</label>
+              <input type="text" id="jwtSub" placeholder="usr_xxxx o email@ejemplo.com" />
             </div>
             <div class="form-group">
-              <label>Roles (separados por coma):</label>
-              <input type="text" id="jwtRole" placeholder="admin,editor,viewer" />
+              <label>Roles (coma separados):</label>
+              <input type="text" id="jwtRole" placeholder="admin, editor, viewer" value="user" />
             </div>
             <div class="form-group">
-              <label>Expiración (Segundos):</label>
-              <input type="number" id="jwtExp" placeholder="3600" min="60" />
+              <label>Expiración (segundos):</label>
+              <input type="number" id="jwtExp" value="3600" min="60" />
             </div>
-            <button id="btnGenerateJwt" class="btn-primary">Generar &amp; Firmar JWT</button>
-            <div class="code-preview" id="jwtOutput"></div>
+            <button id="btnGenerateJwt" class="btn-primary">⚡ Generar JWT</button>
+            <div class="code-preview" id="jwtOutput">El token aparecerá aquí…</div>
           </div>
-
           <div class="glass-card">
-            <h3>🔑 JWKS Public Key Set</h3>
-            <p class="text-muted" style="margin-bottom:1rem;">Clave pública expuesta para verificación de firma offline a 0ms de latencia.</p>
-            <button id="btnFetchJwks" class="btn-secondary">Cargar JWKS Public Keys</button>
-            <pre class="code-preview" id="jwksOutput"></pre>
+            <h3>🔑 JWKS — JSON Web Key Set</h3>
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:1rem;">Punto público de verificación de firmas. Comparte esta URL con tus servicios externos para que puedan verificar tokens emitidos por Luciole sin conocer el secreto.</p>
+            <button id="btnFetchJwks" class="btn-secondary">📥 Ver JWKS público</button>
+            <div class="code-preview" id="jwksOutput">Las claves públicas aparecerán aquí…</div>
           </div>
         </div>
       </section>
 
       <!-- Tab: Pyralis -->
       <section id="tab-pyralis" class="tab-panel">
-        <div class="sub-tabs">
-          <button class="sub-tab active" data-subtab="pyralis-eval">📋 Evaluar Acceso</button>
-          <button class="sub-tab" data-subtab="pyralis-policies">📄 Políticas</button>
-          <button class="sub-tab" data-subtab="pyralis-roles">🎭 Roles</button>
-        </div>
-
-        <!-- Sub-tab: Evaluate -->
-        <div id="pyralis-eval" class="sub-panel active glass-card">
-          <h3>📋 Pyralis — Evaluador de Acceso IAM</h3>
-          <p class="text-muted" style="margin-bottom:1rem;">Evalúa Allow/Deny sobre recursos Terra (<code>arn:terra:...</code>) con soporte multi-rol.</p>
-          <div class="grid-3">
-            <div class="form-group">
-              <label>Action:</label>
-              <input type="text" id="iamAction" placeholder="combase:query" />
-            </div>
-            <div class="form-group">
-              <label>Resource (ARN):</label>
-              <input type="text" id="iamResource" placeholder="arn:terra:combase:db/users" />
-            </div>
-            <div class="form-group">
-              <label>Roles (separados por coma):</label>
-              <input type="text" id="iamRole" placeholder="admin,developer" />
-            </div>
+        <div class="glass-card" style="margin-bottom:0.5rem">
+          <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+            <label style="font-size:.8rem;color:var(--text-muted)">Acción:</label>
+            <input type="text" id="iamAction" placeholder="combase:read" style="flex:1;min-width:120px" />
+            <label style="font-size:.8rem;color:var(--text-muted)">Recurso:</label>
+            <input type="text" id="iamResource" placeholder="arn:terra:combase:projects/*" style="flex:1;min-width:160px" />
+            <label style="font-size:.8rem;color:var(--text-muted)">Roles:</label>
+            <input type="text" id="iamRole" placeholder="admin,editor" style="flex:1;min-width:100px" />
+            <button id="btnEvalIam" class="btn-primary">▶ Evaluar Acceso</button>
           </div>
-          <button id="btnEvalIam" class="btn-primary">Evaluar Política</button>
           <div id="iamResult" class="result-box hidden">
-            <span class="result-badge" id="iamResultBadge">ALLOW</span>
-            <span id="iamResultReason"></span>
+            <span id="iamResultBadge" class="result-badge">—</span>
+            <span id="iamResultReason" style="font-size:.82rem;color:var(--text-muted)"></span>
           </div>
         </div>
 
-        <!-- Sub-tab: Policies -->
-        <div id="pyralis-policies" class="sub-panel hidden glass-card">
-          <div class="action-bar" style="margin-bottom:1rem;">
-            <h3>📄 Políticas</h3>
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-subtab="panelPolicies">📋 Políticas</button>
+          <button class="sub-tab" data-subtab="panelRoles">🎭 Roles</button>
+        </div>
+
+        <div id="panelPolicies" class="sub-panel active">
+          <div class="action-bar" style="margin:0.75rem 0 0.5rem">
+            <span style="font-weight:600">📋 Políticas</span>
             <span class="spacer"></span>
             <button id="btnNewPolicy" class="btn-primary">➕ Nueva Política</button>
           </div>
-          <div class="table-container">
+          <div class="table-container glass-card">
             <table class="data-table">
               <thead>
                 <tr><th>ID</th><th>Nombre</th><th>Provider</th><th>Statements</th><th>Creada</th><th>Acciones</th></tr>
               </thead>
               <tbody id="policyTableBody">
-                <tr><td colspan="6" class="text-center text-muted">No hay políticas creadas</td></tr>
+                <tr><td colspan="6" class="text-center text-muted">Sin políticas</td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Sub-tab: Roles -->
-        <div id="pyralis-roles" class="sub-panel hidden glass-card">
-          <div class="action-bar" style="margin-bottom:1rem;">
-            <h3>🎭 Roles</h3>
+        <div id="panelRoles" class="sub-panel hidden">
+          <div class="action-bar" style="margin:0.75rem 0 0.5rem">
+            <span style="font-weight:600">🎭 Roles</span>
             <span class="spacer"></span>
             <button id="btnNewRole" class="btn-primary">➕ Nuevo Rol</button>
           </div>
-          <div class="table-container">
+          <div class="table-container glass-card">
             <table class="data-table">
               <thead>
                 <tr><th>ID</th><th>Nombre</th><th>Provider</th><th>Políticas</th><th>Creado</th><th>Acciones</th></tr>
               </thead>
               <tbody id="roleTableBody">
-                <tr><td colspan="6" class="text-center text-muted">No hay roles creados</td></tr>
+                <tr><td colspan="6" class="text-center text-muted">Sin roles</td></tr>
               </tbody>
             </table>
           </div>
@@ -217,78 +209,81 @@
       <!-- Tab: LanternLinks -->
       <section id="tab-lantern" class="tab-panel">
         <div class="glass-card">
-          <h3>🏮 LanternLinks Serverless Magic Links</h3>
-          <p class="text-muted" style="margin-bottom:1rem;">Genera un enlace de acceso único y un OTP con caducidad automática (anti-replay).</p>
-          <div class="form-group">
-            <label>Email del usuario:</label>
-            <input type="email" id="magicEmail" placeholder="usuario@empresa.com" />
+          <h3>🏮 LanternLinks — Magic Links OTP</h3>
+          <div class="grid-2">
+            <div>
+              <div class="form-group">
+                <label>Email destino:</label>
+                <input type="email" id="magicEmail" placeholder="usuario@ejemplo.com" />
+              </div>
+              <div class="form-group">
+                <label>TTL (segundos):</label>
+                <input type="number" id="magicTtl" value="300" min="60" />
+              </div>
+              <button id="btnCreateMagic" class="btn-primary">✨ Generar Magic Link</button>
+            </div>
+            <div class="code-preview" id="magicOutput" style="min-height:120px">El magic link aparecerá aquí…</div>
           </div>
-          <div class="form-group">
-            <label>TTL (segundos, default 300):</label>
-            <input type="number" id="magicTtl" placeholder="300" min="60" max="3600" />
-          </div>
-          <button id="btnCreateMagic" class="btn-primary">🏮 Generar Magic Link</button>
-          <div class="code-preview" id="magicOutput"></div>
         </div>
       </section>
 
       <!-- Tab: Glowworm -->
       <section id="tab-glowworm" class="tab-panel">
         <div class="glass-card">
-          <h3>⚡ Glowworm Break-Glass Emergency Credentials</h3>
-          <p class="text-muted" style="margin-bottom:1rem;">Emite un token de super-administrador efímero de 15 minutos. Registrado en el audit log.</p>
-          <div class="form-group">
-            <label>ID del usuario beneficiario:</label>
-            <input type="text" id="gwUser" placeholder="usr_..." />
+          <h3>⚡ Glowworm Break-Glass — Super Admin Token</h3>
+          <div class="grid-2">
+            <div>
+              <div class="form-group">
+                <label>User ID:</label>
+                <input type="text" id="gwUser" placeholder="usr_xxxx" />
+              </div>
+              <div class="form-group">
+                <label>Motivo (audit log):</label>
+                <input type="text" id="gwReason" placeholder="Recuperación de cuenta crítica..." />
+              </div>
+              <button id="btnIssueGw" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">⚡ Emitir Break-Glass (15 min)</button>
+            </div>
+            <div class="code-preview" id="gwOutput" style="min-height:120px">El token Break-Glass aparecerá aquí…</div>
           </div>
-          <div class="form-group">
-            <label>Motivo de la emergencia:</label>
-            <input type="text" id="gwReason" placeholder="Describe el incidente..." />
-          </div>
-          <button id="btnIssueGw" class="btn-primary btn-danger">⚡ Emitir Token Break-Glass (15 min)</button>
-          <div class="code-preview" id="gwOutput"></div>
         </div>
       </section>
 
       <!-- Tab: Coleoptera -->
       <section id="tab-coleoptera" class="tab-panel">
         <div class="glass-card">
-          <h3>🐝 Coleoptera Enterprise AD &amp; Provider Bridge</h3>
-          <p class="text-muted" style="margin-bottom:1rem;">Exporta el directorio de identidades al formato del proveedor seleccionado.</p>
-          <div class="form-group">
-            <label>Proveedor destino:</label>
+          <h3>🐝 Coleoptera — Enterprise Identity Bridge</h3>
+          <div class="form-group" style="max-width:300px">
+            <label>Exportar hacia:</label>
             <select id="bridgeProvider">
-              <option value="auth0">Auth0 — JSON Format</option>
-              <option value="supabase">Supabase Auth — SQL Dump</option>
-              <option value="aws_iam">AWS IAM — JSON Policy</option>
-              <option value="firebase">Firebase — JSON Format</option>
+              <option value="auth0">Auth0</option>
+              <option value="supabase">Supabase</option>
+              <option value="aws_iam">AWS IAM</option>
+              <option value="firebase">Firebase</option>
             </select>
           </div>
-          <button id="btnExportBridge" class="btn-primary">🐝 Exportar Identidades</button>
-          <pre class="code-preview" id="bridgeOutput"></pre>
+          <button id="btnExportBridge" class="btn-primary">📤 Generar Export</button>
+          <div class="code-preview" id="bridgeOutput" style="min-height:160px">El output de exportación aparecerá aquí…</div>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- Modal: Create/Edit User -->
+  <!-- Modal: Create / Edit User -->
   <div id="modalUser" class="modal">
     <div class="modal-card">
-      <h3 id="modalUserTitle">➕ Usuario en Photuris Vault</h3>
+      <h3 id="modalUserTitle">➕ Nuevo Usuario</h3>
       <input type="hidden" id="editUserId" />
       <div class="form-group">
         <label>Email:</label>
-        <input type="email" id="newUserEmail" placeholder="email@empresa.com" />
+        <input type="email" id="newUserEmail" placeholder="usuario@empresa.com" />
       </div>
       <div class="form-group">
         <label>Nombre completo:</label>
-        <input type="text" id="newUserName" placeholder="Nombre Apellido" />
+        <input type="text" id="newUserName" placeholder="Ada Lovelace" />
       </div>
       <div class="form-group">
-        <label>Roles (selecciona uno o más):</label>
-        <div id="rolesCheckboxList" class="roles-checkbox-list">
-          <span class="text-muted" style="font-size:0.8rem;">Cargando roles...</span>
-        </div>
+        <label>Roles asignados:</label>
+        <div id="rolesCheckboxList" class="roles-checkbox-list"></div>
       </div>
       <div class="modal-actions">
         <button id="btnCancelUser" class="btn-secondary">Cancelar</button>
@@ -300,11 +295,11 @@
   <!-- Modal: Create/Edit Policy -->
   <div id="modalPolicy" class="modal">
     <div class="modal-card">
-      <h3 id="modalPolicyTitle">📋 Política Pyralis</h3>
+      <h3 id="modalPolicyTitle">📋 Nueva Política Pyralis</h3>
       <input type="hidden" id="editPolicyId" />
       <div class="form-group">
         <label>Nombre de la política:</label>
-        <input type="text" id="newPolicyName" placeholder="CombaseReadOnly, RollaFullAccess..." />
+        <input type="text" id="newPolicyName" placeholder="admin-full-access" />
       </div>
       <div class="form-group">
         <label>Descripción (opcional):</label>
@@ -370,7 +365,8 @@
   <!-- Modal: Create Sanctuary -->
   <div id="modalSanct" class="modal">
     <div class="modal-card">
-      <h3>🏛️ Nueva Sanctuary</h3>
+      <h3>🏛️ Nuevo Sanctuary</h3>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:1rem;">Un Sanctuary aísla completamente usuarios, políticas y roles. Ideal para separar entornos (production, staging, my-app).</p>
       <div class="form-group">
         <label>Nombre del Sanctuary:</label>
         <input type="text" id="newSanctName" placeholder="production, staging, my-app..." />
@@ -382,6 +378,26 @@
       <div class="modal-actions">
         <button id="btnCancelSanct" class="btn-secondary">Cancelar</button>
         <button id="btnSaveSanct" class="btn-primary">Crear Sanctuary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Rename Sanctuary -->
+  <div id="modalRenameSanct" class="modal">
+    <div class="modal-card">
+      <h3>✏️ Renombrar Sanctuary</h3>
+      <input type="hidden" id="renameSanctOldName" />
+      <div class="form-group">
+        <label>Nombre actual:</label>
+        <input type="text" id="renameSanctOldDisplay" disabled style="opacity:0.5" />
+      </div>
+      <div class="form-group">
+        <label>Nuevo nombre:</label>
+        <input type="text" id="renameSanctNewName" placeholder="nuevo-nombre..." />
+      </div>
+      <div class="modal-actions">
+        <button id="btnCancelRenameSanct" class="btn-secondary">Cancelar</button>
+        <button id="btnSaveRenameSanct" class="btn-primary">Renombrar</button>
       </div>
     </div>
   </div>
