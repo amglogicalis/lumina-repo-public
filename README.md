@@ -86,10 +86,13 @@ Esto creará el archivo `lumina.config.json`:
 }
 ```
 
-### 3. Abrir LUMINA Studio (Consola Web Local)
+### 3. Abrir Consola Web Local (Offline en Localhost)
 ```bash
 npx lumina studio
+# o equivalente:
+npx lumina console
 ```
+*Inicia un servidor HTTP local en `http://localhost:3720` para administrar el IdP de forma 100% privada e hiperrápida sin depender de Internet.*
 
 ---
 
